@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 我的藏书 · 方案 C</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --surface-light: #1f3050;
+      --text: #e8e8e8;
+      --text2: #8b8fa3;
+      --border: #2a3a5c;
+      --accent: #e94560;
+      --gold: #fbbf24;
+      --shadow: 0 2px 8px rgba(0,0,0,.3);
+      --radius: 10px;
+
+      --c-novel: #e94560;
+      --c-nonfic: #f59e0b;
+      --c-history: #8b5cf6;
+      --c-science: #06b6d4;
+      --c-tech: #3b82f6;
+      --c-philosophy: #a855f7;
+      --c-art: #ec4899;
+      --c-business: #14b8a6;
+      --c-literature: #f97316;
+    }
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container { max-width: 1600px; margin: 0 auto; padding: 0 32px; }
+
+    /* ===== Header ===== */
+    header {
+      padding: 40px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+    .header-inner {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .header-left h1 { font-size: 28px; font-weight: 700; letter-spacing: -.5px; }
+    .header-left .subtitle { font-size: 13px; color: var(--text2); margin-top: 2px; }
+    .header-controls { display: flex; gap: 12px; align-items: center; }
+    .header-controls input {
+      padding: 8px 14px; border-radius: 100px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font-size: 13px;
+      outline: none; width: 200px;
+    }
+    .header-controls input::placeholder { color: var(--text2); }
+    .header-controls input:focus { border-color: var(--accent); }
+    .header-links a {
+      color: var(--text2); text-decoration: none; font-size: 13px;
+      padding: 6px 14px; border-radius: 100px; border: 1px solid var(--border);
+      transition: all .15s;
+    }
+    .header-links a:hover {
+      border-color: var(--accent); color: var(--accent);
+    }
+    .demo-badge {
+      background: var(--accent); color: #fff; font-size: 10px;
+      padding: 2px 8px; border-radius: 100px; margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    /* ===== Stats ===== */
+    .stats {
+      display: flex; gap: 24px; margin-bottom: 40px;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .stat-item {
+      text-align: center; padding: 4px 0;
+    }
+    .stat-item .num {
+      display: block; font-size: 32px; font-weight: 700;
+    }
+    .stat-item .label {
+      font-size: 12px; color: var(--text2); text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stat-item.total .num { color: #fff; }
+    .stat-item.reading { border-top: 2px solid #3b82f6; padding-top: 8px; }
+    .stat-item.reading .num { color: #3b82f6; }
+    .stat-item.done { border-top: 2px solid #10b981; padding-top: 8px; }
+    .stat-item.done .num { color: #10b981; }
+    .stat-item.wish { border-top: 2px solid #f59e0b; padding-top: 8px; }
+    .stat-item.wish .num { color: #f59e0b; }
+
+    /* ===== Category Shelf Section ===== */
+    .shelf-section {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 32px;
+      align-items: flex-start;
+    }
+    .shelf-header {
+      flex: 0 0 100px;
+      padding-top: 6px;
+      position: sticky;
+      top: 20px;
+      border-right: 1px solid var(--border);
+      padding-right: 16px;
+    }
+    .shelf-header h2 {
+      font-size: 16px; font-weight: 600;
+      line-height: 1.3;
+    }
+    .shelf-header .count {
+      font-size: 12px; color: var(--text2);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .shelf-section[data-genre="小说"] .shelf-header h2 { color: var(--c-novel); }
+    .shelf-section[data-genre="技术"] .shelf-header h2 { color: var(--c-tech); }
+    .shelf-section[data-genre="历史"] .shelf-header h2 { color: var(--c-history); }
+    .shelf-section[data-genre="哲学"] .shelf-header h2 { color: var(--c-philosophy); }
+    .shelf-section[data-genre="科学"] .shelf-header h2 { color: var(--c-science); }
+    .shelf-section[data-genre="商业"] .shelf-header h2 { color: var(--c-business); }
+    .shelf-section[data-genre="非虚构"] .shelf-header h2 { color: var(--c-nonfic); }
+    .shelf-section[data-genre="文学"] .shelf-header h2 { color: var(--c-literature); }
+    .shelf-section[data-genre="艺术"] .shelf-header h2 { color: var(--c-art); }
+
+    /* ===== Book Grid (Shelf) ===== */
+    .shelf-grid {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    /* ===== Book Card ===== */
+    .book {
+      width: 150px;
+      cursor: pointer;
+      transition: transform .2s;
+      position: relative;
+    }
+    .book:hover { transform: translateY(-6px); }
+    .book:active { transform: scale(.96); }
+
+    .book-spine {
+      width: 100%; height: 190px;
+      border-radius: 6px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      transition: box-shadow .2s;
+    }
+    .book:hover .book-spine {
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+
+    /* color by primary genre */
+    .book[data-genre="小说"] .book-spine { background: linear-gradient(135deg, #e94560, #c23152); }
+    .book[data-genre="非虚构"] .book-spine { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .book[data-genre="历史"] .book-spine { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .book[data-genre="科学"] .book-spine { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .book[data-genre="技术"] .book-spine { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .book[data-genre="哲学"] .book-spine { background: linear-gradient(135deg, #a855f7, #9333ea); }
+    .book[data-genre="艺术"] .book-spine { background: linear-gradient(135deg, #ec4899, #db2777); }
+    .book[data-genre="商业"] .book-spine { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+    .book[data-genre="文学"] .book-spine { background: linear-gradient(135deg, #f97316, #ea580c); }
+    .book[data-genre="传记"] .book-spine { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+    .book[data-genre="其他"] .book-spine { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+    .book-emoji {
+      font-size: 36px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
+    }
+    .book-title-on-spine {
+      color: rgba(255,255,255,.95);
+      font-size: 13px; font-weight: 500;
+      text-align: center; padding: 0 10px;
+      margin-top: 8px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-shadow: 0 1px 2px rgba(0,0,0,.2);
+    }
+
+    /* status ribbon */
+    .book-ribbon {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 12px;
+    }
+
+    /* bottom label */
+    .book-author-label {
+      font-size: 11px; color: var(--text2); text-align: center;
+      margin-top: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ===== Footer ===== */
+    .page-footer {
+      text-align: center; padding: 48px 0 36px; color: var(--text2); font-size: 13px;
+    }
+    .page-footer a { color: var(--accent); text-decoration: none; }
+
+    /* ===== Open Book Overlay ===== */
+    .book-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 900;
+      background: rgba(10,10,20,.85);
+      backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .book-overlay.active { display: flex; }
+
+    .open-book {
+      perspective: 1200px;
+      max-width: 780px;
+      width: 100%;
+      animation: bookAppear .5s ease;
+    }
+
+    @keyframes bookAppear {
+      from { opacity: 0; transform: scale(.8) rotateY(20deg); }
+      to { opacity: 1; transform: scale(1) rotateY(0deg); }
+    }
+
+    .open-book-inner {
+      display: flex;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      transform-style: preserve-3d;
+    }
+
+    /* Left page - Cover */
+    .book-left {
+      flex: 0 0 280px;
+      min-height: 400px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 20px;
+      position: relative;
+    }
+    .book-left .big-emoji {
+      font-size: 80px;
+      margin-bottom: 16px;
+    }
+    .book-left .big-title {
+      font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 4px;
+    }
+    .book-left .big-author {
+      font-size: 14px; color: var(--text2); text-align: center;
+    }
+    .book-left::after {
+      content: '';
+      position: absolute; right: 0; top: 10%; height: 80%; width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--border), transparent);
+    }
+
+    /* Right page - Details */
+    .book-right {
+      flex: 1; padding: 32px 28px; min-height: 400px;
+      display: flex; flex-direction: column;
+    }
+    .book-right .detail-status {
+      margin-bottom: 16px;
+    }
+    .status-badge {
+      display: inline-block; padding: 4px 14px; border-radius: 100px;
+      font-size: 12px; font-weight: 500;
+    }
+    .status-badge.done { background: rgba(16,185,129,.15); color: #10b981; }
+    .status-badge.reading { background: rgba(59,130,246,.15); color: #3b82f6; }
+    .status-badge.wish { background: rgba(245,158,11,.15); color: #f59e0b; }
+
+    .book-right .detail-tags {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .detail-tag {
+      font-size: 12px; padding: 2px 12px; border-radius: 100px;
+      background: var(--surface-light); color: var(--text2); border: 1px solid var(--border);
+    }
+    .detail-tag.primary {
+      background: rgba(233,69,96,.15); color: var(--accent); border-color: transparent;
+    }
+    .book-right .detail-rating {
+      font-size: 20px; letter-spacing: 2px; color: var(--gold);
+      margin-bottom: 16px;
+    }
+    .book-right .detail-review {
+      flex: 1; font-size: 14px; line-height: 1.8;
+      color: var(--text2);
+      overflow-y: auto; max-height: 200px;
+    }
+    .book-right .close-button {
+      align-self: flex-end; margin-top: 16px;
+      padding: 8px 20px; border: 1px solid var(--border); border-radius: 100px;
+      background: transparent; color: var(--text2); font-size: 13px;
+      cursor: pointer; transition: all .15s;
+    }
+    .book-right .close-button:hover {
+      border-color: var(--accent); color: var(--accent);
+    }
+
+    /* ===== Responsive ===== */
+    @media (min-width: 1600px) {
+      .container { padding: 0 48px; }
+      .book { width: 170px; }
+      .book-spine { height: 210px; }
+      .book-emoji { font-size: 42px; }
+      .book-title-on-spine { font-size: 14px; }
+      .shelf-grid { gap: 20px; }
+    }
+    @media (max-width: 820px) {
+      .book { width: 130px; }
+      .book-spine { height: 160px; }
+      .book-emoji { font-size: 28px; }
+      .book-left { flex: 0 0 200px; }
+    }
+    @media (max-width: 600px) {
+      header { padding: 24px 0 16px; }
+      .header-inner { flex-direction: column; align-items: stretch; }
+      .header-controls { flex-wrap: wrap; }
+      .header-controls input { width: 100%; }
+      .stats { gap: 16px; }
+      .stat-item .num { font-size: 24px; }
+      .book { width: calc(50% - 8px); }
+      .book-spine { height: 170px; }
+      .open-book-inner { flex-direction: column; }
+      .book-left {
+        flex: unset; padding: 24px 20px; min-height: unset;
+      }
+      .book-left::after { display: none; }
+      .book-left .big-emoji { font-size: 56px; }
+      .book-right { padding: 24px 20px; min-height: unset; }
+    }
+    @media (max-width: 380px) {
+      .book { width: calc(50% - 8px); }
+      .book-spine { height: 130px; }
+      .shelf-grid { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <div class="header-left">
+      <h1>📚 我的藏书 <span class="demo-badge">方案 C · 翻书设计</span></h1>
+      <div class="subtitle">就像站在书架前一样</div>
+    </div>
+    <div class="header-controls">
+      <input type="text" placeholder="🔍 搜索书名、作者..." value="">
+      <div class="header-links">
+        <a href="#">⚙️ 管理</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Stats -->
+  <section class="stats">
+    <div class="stat-item total"><span class="num">52</span><span class="label">总藏书</span></div>
+    <div class="stat-item reading"><span class="num">8</span><span class="label">在读</span></div>
+    <div class="stat-item done"><span class="num">30</span><span class="label">已读</span></div>
+    <div class="stat-item wish"><span class="num">14</span><span class="label">想读</span></div>
+  </section>
+
+  <!-- Shelf: 小说 -->
+  <section class="shelf-section" data-genre="小说">
+    <div class="shelf-header">
+      <h2>📖 小说</h2>
+      <span class="count">10 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="小说" data-id="1">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📖</span><span class="book-title-on-spine">百年孤独</span></div>
+        <div class="book-author-label">加西亚·马尔克斯</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="2">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">📝</span><span class="book-title-on-spine">活着</span></div>
+        <div class="book-author-label">余华</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="3">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🏔️</span><span class="book-title-on-spine">挪威的森林</span></div>
+        <div class="book-author-label">村上春树</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="19">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🎪</span><span class="book-title-on-spine">围城</span></div>
+        <div class="book-author-label">钱钟书</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="20">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🏯</span><span class="book-title-on-spine">红楼梦</span></div>
+        <div class="book-author-label">曹雪芹</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="21">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🌊</span><span class="book-title-on-spine">海边的卡夫卡</span></div>
+        <div class="book-author-label">村上春树</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="22">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🗡️</span><span class="book-title-on-spine">三体</span></div>
+        <div class="book-author-label">刘慈欣</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="23">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🪐</span><span class="book-title-on-spine">银河帝国</span></div>
+        <div class="book-author-label">阿西莫夫</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="24">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🇨🇳</span><span class="book-title-on-spine">平凡的世界</span></div>
+        <div class="book-author-label">路遥</div>
+      </div>
+      <div class="book" data-genre="小说" data-id="25">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🏛️</span><span class="book-title-on-spine">战争与和平</span></div>
+        <div class="book-author-label">托尔斯泰</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 技术 -->
+  <section class="shelf-section" data-genre="技术">
+    <div class="shelf-header">
+      <h2>💻 技术</h2>
+      <span class="count">9 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="技术" data-id="4">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">💻</span><span class="book-title-on-spine">黑客与画家</span></div>
+        <div class="book-author-label">Paul Graham</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="5">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🏛️</span><span class="book-title-on-spine">设计模式</span></div>
+        <div class="book-author-label">GoF</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="6">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🐚</span><span class="book-title-on-spine">Unix 编程艺术</span></div>
+        <div class="book-author-label">Eric S. Raymond</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="7">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🗄️</span><span class="book-title-on-spine">数据库系统概论</span></div>
+        <div class="book-author-label">王珊</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="26">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📘</span><span class="book-title-on-spine">JavaScript 高级程序设计</span></div>
+        <div class="book-author-label">Nicholas Zakas</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="27">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🐍</span><span class="book-title-on-spine">流畅的 Python</span></div>
+        <div class="book-author-label">Luciano Ramalho</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="28">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🌐</span><span class="book-title-on-spine">HTTP 权威指南</span></div>
+        <div class="book-author-label">David Gourley</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="29">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">⚛️</span><span class="book-title-on-spine">React 设计原理</span></div>
+        <div class="book-author-label">卡颂</div>
+      </div>
+      <div class="book" data-genre="技术" data-id="30">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🤖</span><span class="book-title-on-spine">人工智能</span></div>
+        <div class="book-author-label">Russell & Norvig</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 历史 -->
+  <section class="shelf-section" data-genre="历史">
+    <div class="shelf-header">
+      <h2>📜 历史</h2>
+      <span class="count">6 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="历史" data-id="8">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🌍</span><span class="book-title-on-spine">人类简史</span></div>
+        <div class="book-author-label">尤瓦尔·赫拉利</div>
+      </div>
+      <div class="book" data-genre="历史" data-id="9">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌏</span><span class="book-title-on-spine">枪炮、病菌与钢铁</span></div>
+        <div class="book-author-label">贾雷德·戴蒙德</div>
+      </div>
+      <div class="book" data-genre="历史" data-id="31">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🏯</span><span class="book-title-on-spine">万历十五年</span></div>
+        <div class="book-author-label">黄仁宇</div>
+      </div>
+      <div class="book" data-genre="历史" data-id="32">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📜</span><span class="book-title-on-spine">史记</span></div>
+        <div class="book-author-label">司马迁</div>
+      </div>
+      <div class="book" data-genre="历史" data-id="33">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🏛️</span><span class="book-title-on-spine">罗马帝国衰亡史</span></div>
+        <div class="book-author-label">吉本</div>
+      </div>
+      <div class="book" data-genre="历史" data-id="34">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌊</span><span class="book-title-on-spine">全球通史</span></div>
+        <div class="book-author-label">斯塔夫里阿诺斯</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 哲学 -->
+  <section class="shelf-section" data-genre="哲学">
+    <div class="shelf-header">
+      <h2>🧠 哲学</h2>
+      <span class="count">6 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="哲学" data-id="10">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🧠</span><span class="book-title-on-spine">存在与时间</span></div>
+        <div class="book-author-label">海德格尔</div>
+      </div>
+      <div class="book" data-genre="哲学" data-id="11">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">⚖️</span><span class="book-title-on-spine">论人类不平等的起源</span></div>
+        <div class="book-author-label">卢梭</div>
+      </div>
+      <div class="book" data-genre="哲学" data-id="35">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🎭</span><span class="book-title-on-spine">查拉图斯特拉如是说</span></div>
+        <div class="book-author-label">尼采</div>
+      </div>
+      <div class="book" data-genre="哲学" data-id="36">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🕰️</span><span class="book-title-on-spine">纯粹理性批判</span></div>
+        <div class="book-author-label">康德</div>
+      </div>
+      <div class="book" data-genre="哲学" data-id="37">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🏺</span><span class="book-title-on-spine">理想国</span></div>
+        <div class="book-author-label">柏拉图</div>
+      </div>
+      <div class="book" data-genre="哲学" data-id="38">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">📖</span><span class="book-title-on-spine">中国哲学简史</span></div>
+        <div class="book-author-label">冯友兰</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 科学 -->
+  <section class="shelf-section" data-genre="科学">
+    <div class="shelf-header">
+      <h2>🔬 科学</h2>
+      <span class="count">5 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="科学" data-id="12">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🔬</span><span class="book-title-on-spine">万物简史</span></div>
+        <div class="book-author-label">比尔·布莱森</div>
+      </div>
+      <div class="book" data-genre="科学" data-id="13">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🧬</span><span class="book-title-on-spine">自私的基因</span></div>
+        <div class="book-author-label">理查德·道金斯</div>
+      </div>
+      <div class="book" data-genre="科学" data-id="39">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">⏳</span><span class="book-title-on-spine">时间简史</span></div>
+        <div class="book-author-label">霍金</div>
+      </div>
+      <div class="book" data-genre="科学" data-id="40">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🧪</span><span class="book-title-on-spine">上帝掷骰子吗</span></div>
+        <div class="book-author-label">曹天元</div>
+      </div>
+      <div class="book" data-genre="科学" data-id="41">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌌</span><span class="book-title-on-spine">宇宙的结构</span></div>
+        <div class="book-author-label">布莱恩·格林</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 商业 -->
+  <section class="shelf-section" data-genre="商业">
+    <div class="shelf-header">
+      <h2>💼 商业</h2>
+      <span class="count">5 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="商业" data-id="14">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">💼</span><span class="book-title-on-spine">穷查理宝典</span></div>
+        <div class="book-author-label">查理·芒格</div>
+      </div>
+      <div class="book" data-genre="商业" data-id="15">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📈</span><span class="book-title-on-spine">从零到一</span></div>
+        <div class="book-author-label">Peter Thiel</div>
+      </div>
+      <div class="book" data-genre="商业" data-id="42">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📊</span><span class="book-title-on-spine">思考，快与慢</span></div>
+        <div class="book-author-label">丹尼尔·卡尼曼</div>
+      </div>
+      <div class="book" data-genre="商业" data-id="43">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🔄</span><span class="book-title-on-spine">重新定义公司</span></div>
+        <div class="book-author-label">Eric Schmidt</div>
+      </div>
+      <div class="book" data-genre="商业" data-id="44">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌱</span><span class="book-title-on-spine">创新者的窘境</span></div>
+        <div class="book-author-label">克里斯坦森</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 非虚构 -->
+  <section class="shelf-section" data-genre="非虚构">
+    <div class="shelf-header">
+      <h2>📰 非虚构</h2>
+      <span class="count">5 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="非虚构" data-id="16">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">✍️</span><span class="book-title-on-spine">置身事内</span></div>
+        <div class="book-author-label">兰小欢</div>
+      </div>
+      <div class="book" data-genre="非虚构" data-id="17">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📊</span><span class="book-title-on-spine">事实</span></div>
+        <div class="book-author-label">汉斯·罗斯林</div>
+      </div>
+      <div class="book" data-genre="非虚构" data-id="45">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🗣️</span><span class="book-title-on-spine">非暴力沟通</span></div>
+        <div class="book-author-label">马歇尔·卢森堡</div>
+      </div>
+      <div class="book" data-genre="非虚构" data-id="46">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🧘</span><span class="book-title-on-spine">心流</span></div>
+        <div class="book-author-label">米哈里·契克森米哈赖</div>
+      </div>
+      <div class="book" data-genre="非虚构" data-id="47">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌐</span><span class="book-title-on-spine">信息简史</span></div>
+        <div class="book-author-label">詹姆斯·格雷克</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shelf: 文学 -->
+  <section class="shelf-section" data-genre="文学">
+    <div class="shelf-header">
+      <h2>📝 文学</h2>
+      <span class="count">6 本</span>
+      
+    </div>
+    <div class="shelf-grid">
+      <div class="book" data-genre="文学" data-id="18">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🎭</span><span class="book-title-on-spine">台北人</span></div>
+        <div class="book-author-label">白先勇</div>
+      </div>
+      <div class="book" data-genre="文学" data-id="48">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">📖</span><span class="book-title-on-spine">边城</span></div>
+        <div class="book-author-label">沈从文</div>
+      </div>
+      <div class="book" data-genre="文学" data-id="49">
+        <div class="book-spine"><span class="book-ribbon">✅</span><span class="book-emoji">🌸</span><span class="book-title-on-spine">雪国</span></div>
+        <div class="book-author-label">川端康成</div>
+      </div>
+      <div class="book" data-genre="文学" data-id="50">
+        <div class="book-spine"><span class="book-ribbon">📖</span><span class="book-emoji">🏜️</span><span class="book-title-on-spine">撒哈拉的故事</span></div>
+        <div class="book-author-label">三毛</div>
+      </div>
+      <div class="book" data-genre="文学" data-id="51">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌿</span><span class="book-title-on-spine">瓦尔登湖</span></div>
+        <div class="book-author-label">梭罗</div>
+      </div>
+      <div class="book" data-genre="文学" data-id="52">
+        <div class="book-spine"><span class="book-ribbon">📌</span><span class="book-emoji">🌊</span><span class="book-title-on-spine">追忆似水年华</span></div>
+        <div class="book-author-label">普鲁斯特</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  📚 我的藏书 · <a href="#">⚙️ 后台管理</a>
+</footer>
+
+<!-- ===== Book Detail Overlay ===== -->
+<div class="book-overlay" id="bookOverlay">
+  <div class="open-book">
+    <div class="open-book-inner">
+      <!-- Left page: Cover -->
+      <div class="book-left" id="detailLeft">
+        <div class="big-emoji" id="detailEmoji">📖</div>
+        <div class="big-title" id="detailTitle">百年孤独</div>
+        <div class="big-author" id="detailAuthor">加西亚·马尔克斯</div>
+      </div>
+      <!-- Right page: Details -->
+      <div class="book-right">
+        <div class="detail-status" id="detailStatus">
+          <span class="status-badge done">✅ 已读</span>
+        </div>
+        <div class="detail-tags" id="detailTags">
+          <span class="detail-tag primary">小说</span>
+          <span class="detail-tag">文学</span>
+        </div>
+        <div class="detail-rating" id="detailRating">★★★★★</div>
+        <div class="detail-review" id="detailReview">
+          一个家族七代人的轮回。魔幻现实主义的巅峰之作，每个人都能在布恩迪亚家族中找到自己的影子。马尔克斯用瑰丽的想象力和精确的笔触，讲述了一个关于命运、爱情、孤独与重复的寓言。
+        </div>
+        <button class="close-button" id="closeBook">合上书本 ✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== Book Data =====
+  const bookData = {
+    "1": { emoji: "📖", title: "百年孤独", author: "加西亚·马尔克斯", status: "done", statusText: "✅ 已读", tags: ["小说", "文学"], primary: true, rating: 5, review: "一个家族七代人的轮回。魔幻现实主义的巅峰之作，每个人都能在布恩迪亚家族中找到自己的影子。" },
+    "2": { emoji: "📝", title: "活着", author: "余华", status: "reading", statusText: "📖 在读", tags: ["小说"], primary: true, rating: 5, review: "人在极端苦难中如何活着。语言朴素，力量惊人。每一次以为到了谷底，命运都还能给出更重的锤击。" },
+    "3": { emoji: "🏔️", title: "挪威的森林", author: "村上春树", status: "done", statusText: "✅ 已读", tags: ["小说", "文学"], primary: true, rating: 4, review: "村上最温柔的一部。那些没法好好告别的人，最后都留在了那片森林里。" },
+    "4": { emoji: "💻", title: "黑客与画家", author: "Paul Graham", status: "reading", statusText: "📖 在读", tags: ["技术", "非虚构"], primary: false, rating: 4, review: "硅谷创业教父的文集。关于编程、创意和财富创造，视角独特。正在精读中。" },
+    "5": { emoji: "🏛️", title: "设计模式", author: "GoF", status: "done", statusText: "✅ 已读", tags: ["技术"], primary: true, rating: 3, review: "四人组的经典之作。理解了设计模式的思维方式后，写代码确实更从容了。" },
+    "6": { emoji: "🐚", title: "Unix 编程艺术", author: "Eric S. Raymond", status: "wish", statusText: "📌 想读", tags: ["技术", "哲学"], primary: true, rating: 0, review: "" },
+    "7": { emoji: "🗄️", title: "数据库系统概论", author: "王珊", status: "done", statusText: "✅ 已读", tags: ["技术"], primary: true, rating: 4, review: "国内数据库教材的经典。深入浅出，从理论到实践都讲得很清楚。" },
+    "8": { emoji: "🌍", title: "人类简史", author: "尤瓦尔·赫拉利", status: "done", statusText: "✅ 已读", tags: ["历史", "非虚构"], primary: true, rating: 5, review: "从认知革命到科学革命，重新理解人类走过的路。每一章都让人重新审视习以为常的叙事。" },
+    "9": { emoji: "🌏", title: "枪炮、病菌与钢铁", author: "贾雷德·戴蒙德", status: "wish", statusText: "📌 想读", tags: ["历史", "非虚构"], primary: true, rating: 0, review: "" },
+    "10": { emoji: "🧠", title: "存在与时间", author: "海德格尔", status: "wish", statusText: "📌 想读", tags: ["哲学"], primary: true, rating: 0, review: "传说中的天书，需要勇气才能打开的第一页。" },
+    "11": { emoji: "⚖️", title: "论人类不平等的起源", author: "卢梭", status: "done", statusText: "✅ 已读", tags: ["哲学"], primary: true, rating: 4, review: "薄薄一本，却影响深远。卢梭对人类文明进程的洞察，至今读来仍有强烈的现实感。" },
+    "12": { emoji: "🔬", title: "万物简史", author: "比尔·布莱森", status: "done", statusText: "✅ 已读", tags: ["科学", "非虚构"], primary: true, rating: 4, review: "用幽默的笔触写成的人类科学探索史。从宇宙大爆炸到DNA发现，精彩纷呈。" },
+    "13": { emoji: "🧬", title: "自私的基因", author: "理查德·道金斯", status: "reading", statusText: "📖 在读", tags: ["科学", "非虚构"], primary: true, rating: 0, review: "正在读，只能说——世界观正在被刷新。" },
+    "14": { emoji: "💼", title: "穷查理宝典", author: "查理·芒格", status: "done", statusText: "✅ 已读", tags: ["商业", "哲学"], primary: true, rating: 5, review: "芒格的普世智慧——用多学科思维模型做决策。不是投资书，是人生书。常读常新。" },
+    "15": { emoji: "📈", title: "从零到一", author: "Peter Thiel", status: "done", statusText: "✅ 已读", tags: ["商业"], primary: true, rating: 4, review: "\"竞争是留给失败者的\"，这个观点值得反复咀嚼。" },
+    "16": { emoji: "✍️", title: "置身事内", author: "兰小欢", status: "done", statusText: "✅ 已读", tags: ["非虚构", "商业"], primary: true, rating: 5, review: "理解中国经济发展和政府角色最好的入门书之一。深入但不晦涩，实事求是。" },
+    "17": { emoji: "📊", title: "事实", author: "汉斯·罗斯林", status: "done", statusText: "✅ 已读", tags: ["非虚构", "科学"], primary: true, rating: 4, review: "用数据治愈焦虑。每一页都在打脸你对世界的刻板印象。" },
+    "18": { emoji: "🎭", title: "台北人", author: "白先勇", status: "done", statusText: "✅ 已读", tags: ["文学", "小说"], primary: true, rating: 5, review: "每一个短篇都是一部浓缩的民国史。白先勇的笔太细腻了。" },
+    "19": { emoji: "🎪", title: "围城", author: "钱钟书", status: "done", statusText: "✅ 已读", tags: ["小说", "文学"], primary: true, rating: 5, review: "城里的人想出去，城外的人想进来。钱钟书的幽默和洞察力无人能及。" },
+    "20": { emoji: "🏯", title: "红楼梦", author: "曹雪芹", status: "done", statusText: "✅ 已读", tags: ["小说", "文学"], primary: true, rating: 5, review: "一部百科全书式的中国古典小说。每次重读都有新的发现。" },
+    "21": { emoji: "🌊", title: "海边的卡夫卡", author: "村上春树", status: "reading", statusText: "📖 在读", tags: ["小说"], primary: true, rating: 0, review: "隐喻和现实的交错，村上风格最浓郁的一部。" },
+    "22": { emoji: "🗡️", title: "三体", author: "刘慈欣", status: "done", statusText: "✅ 已读", tags: ["小说", "科学"], primary: true, rating: 5, review: "中国科幻的里程碑。宇宙黑暗森林法则的想象力令人震撼。" },
+    "23": { emoji: "🪐", title: "银河帝国", author: "阿西莫夫", status: "wish", statusText: "📌 想读", tags: ["小说"], primary: true, rating: 0, review: "" },
+    "24": { emoji: "🇨🇳", title: "平凡的世界", author: "路遥", status: "done", statusText: "✅ 已读", tags: ["小说"], primary: true, rating: 5, review: "一代人的奋斗史诗。朴实无华，却有着打动人心的力量。" },
+    "25": { emoji: "🏛️", title: "战争与和平", author: "托尔斯泰", status: "wish", statusText: "📌 想读", tags: ["小说"], primary: true, rating: 0, review: "" },
+    "26": { emoji: "📘", title: "JavaScript 高级程序设计", author: "Nicholas Zakas", status: "done", statusText: "✅ 已读", tags: ["技术"], primary: true, rating: 4, review: "前端开发者的红宝书。全面系统的 JS 指南。" },
+    "27": { emoji: "🐍", title: "流畅的 Python", author: "Luciano Ramalho", status: "reading", statusText: "📖 在读", tags: ["技术"], primary: true, rating: 4, review: "深入理解 Python 特性的必读之作。每章都有新收获。" },
+    "28": { emoji: "🌐", title: "HTTP 权威指南", author: "David Gourley", status: "done", statusText: "✅ 已读", tags: ["技术"], primary: true, rating: 4, review: "Web 开发者必读。理解了 HTTP 才能理解互联网的底层逻辑。" },
+    "29": { emoji: "⚛️", title: "React 设计原理", author: "卡颂", status: "done", statusText: "✅ 已读", tags: ["技术"], primary: true, rating: 4, review: "从源码层面理解 React 的设计哲学。" },
+    "30": { emoji: "🤖", title: "人工智能", author: "Russell & Norvig", status: "wish", statusText: "📌 想读", tags: ["技术", "科学"], primary: true, rating: 0, review: "" },
+    "31": { emoji: "🏯", title: "万历十五年", author: "黄仁宇", status: "done", statusText: "✅ 已读", tags: ["历史"], primary: true, rating: 5, review: "以万历十五年为切片，展现大明帝国的运作逻辑。大历史观的典范。" },
+    "32": { emoji: "📜", title: "史记", author: "司马迁", status: "done", statusText: "✅ 已读", tags: ["历史", "文学"], primary: true, rating: 5, review: "史家之绝唱，无韵之离骚。中国最好的历史著作，没有之一。" },
+    "33": { emoji: "🏛️", title: "罗马帝国衰亡史", author: "吉本", status: "reading", statusText: "📖 在读", tags: ["历史"], primary: true, rating: 0, review: "巨著！正在慢慢啃。" },
+    "34": { emoji: "🌊", title: "全球通史", author: "斯塔夫里阿诺斯", status: "wish", statusText: "📌 想读", tags: ["历史"], primary: true, rating: 0, review: "" },
+    "35": { emoji: "🎭", title: "查拉图斯特拉如是说", author: "尼采", status: "done", statusText: "✅ 已读", tags: ["哲学"], primary: true, rating: 4, review: "尼采最具诗意的作品。上帝死了，超人诞生。" },
+    "36": { emoji: "🕰️", title: "纯粹理性批判", author: "康德", status: "done", statusText: "✅ 已读", tags: ["哲学"], primary: true, rating: 3, review: "西方哲学的分水岭。虽然难读，但每个认真读完的人都脱了一层皮。" },
+    "37": { emoji: "🏺", title: "理想国", author: "柏拉图", status: "reading", statusText: "📖 在读", tags: ["哲学"], primary: true, rating: 0, review: "西方哲学的源头，正在和苏格拉底对话。" },
+    "38": { emoji: "📖", title: "中国哲学简史", author: "冯友兰", status: "wish", statusText: "📌 想读", tags: ["哲学"], primary: true, rating: 0, review: "" },
+    "39": { emoji: "⏳", title: "时间简史", author: "霍金", status: "done", statusText: "✅ 已读", tags: ["科学"], primary: true, rating: 4, review: "霍金让宇宙学变得可读。从大爆炸到黑洞，深入浅出。" },
+    "40": { emoji: "🧪", title: "上帝掷骰子吗", author: "曹天元", status: "done", statusText: "✅ 已读", tags: ["科学"], primary: true, rating: 5, review: "中国最好的量子物理科普。既有科学的严谨，又有故事的精彩。" },
+    "41": { emoji: "🌌", title: "宇宙的结构", author: "布莱恩·格林", status: "wish", statusText: "📌 想读", tags: ["科学"], primary: true, rating: 0, review: "" },
+    "42": { emoji: "📊", title: "思考，快与慢", author: "丹尼尔·卡尼曼", status: "done", statusText: "✅ 已读", tags: ["商业", "非虚构"], primary: true, rating: 5, review: "系统1和系统2——理解自己的认知偏误，是理性决策的第一步。" },
+    "43": { emoji: "🔄", title: "重新定义公司", author: "Eric Schmidt", status: "done", statusText: "✅ 已读", tags: ["商业"], primary: true, rating: 4, review: "Google 内部的管理哲学。『创意精英』这个概念很有启发。" },
+    "44": { emoji: "🌱", title: "创新者的窘境", author: "克里斯坦森", status: "wish", statusText: "📌 想读", tags: ["商业"], primary: true, rating: 0, review: "" },
+    "45": { emoji: "🗣️", title: "非暴力沟通", author: "马歇尔·卢森堡", status: "done", statusText: "✅ 已读", tags: ["非虚构"], primary: true, rating: 4, review: "观察、感受、需要、请求——四个步骤改善所有关系。" },
+    "46": { emoji: "🧘", title: "心流", author: "米哈里·契克森米哈赖", status: "reading", statusText: "📖 在读", tags: ["非虚构", "哲学"], primary: true, rating: 0, review: "最优体验的心理学。找到心流状态就是找到幸福。" },
+    "47": { emoji: "🌐", title: "信息简史", author: "詹姆斯·格雷克", status: "wish", statusText: "📌 想读", tags: ["非虚构", "技术"], primary: true, rating: 0, review: "" },
+    "48": { emoji: "📖", title: "边城", author: "沈从文", status: "done", statusText: "✅ 已读", tags: ["文学"], primary: true, rating: 5, review: "湘西水乡的爱情悲剧。沈从文的文字像清泉，干净透亮。" },
+    "49": { emoji: "🌸", title: "雪国", author: "川端康成", status: "done", statusText: "✅ 已读", tags: ["文学"], primary: true, rating: 4, review: "日本文学中极致的物哀之美。「穿过县界长长的隧道，便是雪国。」" },
+    "50": { emoji: "🏜️", title: "撒哈拉的故事", author: "三毛", status: "reading", statusText: "📖 在读", tags: ["文学"], primary: true, rating: 0, review: "三毛笔下的沙漠生活，自由又浪漫。" },
+    "51": { emoji: "🌿", title: "瓦尔登湖", author: "梭罗", status: "wish", statusText: "📌 想读", tags: ["文学", "哲学"], primary: true, rating: 0, review: "" },
+    "52": { emoji: "🌊", title: "追忆似水年华", author: "普鲁斯特", status: "wish", statusText: "📌 想读", tags: ["文学"], primary: true, rating: 0, review: "" },
+  };
+
+  // ===== Open Book =====
+  document.querySelectorAll('.book').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const data = bookData[id];
+      if (!data) return;
+
+      document.getElementById('detailEmoji').textContent = data.emoji;
+      document.getElementById('detailTitle').textContent = data.title;
+      document.getElementById('detailAuthor').textContent = data.author;
+
+      // Status
+      const statusEl = document.getElementById('detailStatus');
+      statusEl.innerHTML = `<span class="status-badge ${data.status}">${data.statusText}</span>`;
+
+      // Tags
+      const tagsEl = document.getElementById('detailTags');
+      tagsEl.innerHTML = data.tags.map(t =>
+        `<span class="detail-tag${data.primary && data.tags.indexOf(t) === 0 ? ' primary' : ''}">${t}</span>`
+      ).join('');
+
+      // Rating
+      const ratingEl = document.getElementById('detailRating');
+      if (data.rating > 0) {
+        ratingEl.textContent = '★'.repeat(data.rating) + '☆'.repeat(5 - data.rating);
+      } else {
+        ratingEl.textContent = '尚未评分';
+        ratingEl.style.color = 'var(--text2)';
+        ratingEl.style.fontSize = '14px';
+      }
+
+      // Review
+      const reviewEl = document.getElementById('detailReview');
+      reviewEl.textContent = data.review || '暂无书评';
+
+      // Show
+      document.getElementById('bookOverlay').classList.add('active');
+    });
+  });
+
+  // ===== Close Book =====
+  function closeBook() {
+    document.getElementById('bookOverlay').classList.remove('active');
+  }
+  document.getElementById('closeBook').addEventListener('click', closeBook);
+  document.getElementById('bookOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeBook();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeBook();
+  });
+</script>
+
+</body>
+</html>
