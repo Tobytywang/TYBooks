@@ -170,7 +170,7 @@ watch(() => groupedBooks.value, () => {
 .shelf-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 8px;
+  gap: 16px 8px;
   align-items: flex-end;
 }
 
@@ -208,7 +208,7 @@ watch(() => groupedBooks.value, () => {
   }
   .shelf-header::before { display: none; }
   .shelf-header h2, .shelf-header .count { padding-left: 0; }
-  .shelf-grid { gap: 6px; }
+  .shelf-grid { gap: 16px 6px; }
   .shelf-header h2 { font-size: 13px; }
 }
 </style>
