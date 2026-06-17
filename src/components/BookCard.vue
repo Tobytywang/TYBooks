@@ -5,114 +5,137 @@ defineProps<{ book: Book }>()
 const emit = defineEmits<{ click: [] }>()
 
 const genreColors: Record<string, string> = {
-  '小说': '#e94560',
-  '非虚构': '#f59e0b',
-  '历史': '#8b5cf6',
-  '科学': '#06b6d4',
-  '技术': '#3b82f6',
-  '哲学': '#a855f7',
-  '艺术': '#ec4899',
-  '商业': '#14b8a6',
-  '文学': '#f97316',
-  '传记': '#6366f1',
-  '其他': '#6b7280',
+  '小说': 'var(--c-novel)',
+  '非虚构': 'var(--c-nonfic)',
+  '历史': 'var(--c-history)',
+  '科学': 'var(--c-science)',
+  '技术': 'var(--c-tech)',
+  '哲学': 'var(--c-philosophy)',
+  '艺术': 'var(--c-art)',
+  '商业': 'var(--c-business)',
+  '文学': 'var(--c-literature)',
+  '传记': 'var(--c-biography)',
+  '其他': 'var(--c-other)',
 }
 
-const statusEmoji: Record<string, string> = {
-  done: '✅',
-  reading: '📖',
-  wish: '📌',
+const statusColors: Record<string, string> = {
+  done: '#6a9e7a',
+  reading: '#5c7a9e',
+  wish: '#9e8a5c',
 }
 </script>
 
 <template>
-  <div class="book" :data-genre="book.genre" @click="emit('click')">
+  <div class="book" @click="emit('click')">
     <div
       class="book-spine"
-      :style="{ background: `linear-gradient(135deg, ${genreColors[book.genre] || '#6b7280'}, ${genreColors[book.genre] || '#4b5563'}dd)` }"
+      :style="{ background: genreColors[book.genre] || 'var(--c-other)' }"
     >
-      <span class="book-ribbon">{{ statusEmoji[book.status] }}</span>
-      <span class="book-emoji">{{ book.emoji }}</span>
-      <span class="book-title-on-spine">{{ book.title }}</span>
+      <span class="spine-top-line"></span>
+      <span class="spine-title">{{ book.title }}</span>
+      <span class="spine-author">{{ book.author }}</span>
+      <span class="spine-bottom-line"></span>
+      <span
+        class="spine-status"
+        :style="{ background: statusColors[book.status] }"
+      ></span>
     </div>
-    <div class="book-author-label">{{ book.author }}</div>
   </div>
 </template>
 
 <style scoped>
 .book {
-  width: 150px;
   cursor: pointer;
-  transition: transform .2s;
   position: relative;
+  flex-shrink: 0;
 }
-.book:hover { transform: translateY(-6px); }
-.book:active { transform: scale(.96); }
 
 .book-spine {
-  width: 100%;
+  width: 48px;
   height: 190px;
-  border-radius: 6px;
+  border-radius: 2px 4px 4px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
-  transition: box-shadow .2s;
+  padding: 16px 4px;
+  box-shadow:
+    2px 0 4px rgba(0,0,0,.3),
+    4px 0 8px rgba(0,0,0,.15),
+    inset -2px 0 4px rgba(0,0,0,.15);
+  transition: transform .2s, box-shadow .2s, filter .2s;
 }
-.book:hover .book-spine { box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.book:hover .book-spine {
+  transform: translateY(-6px);
+  filter: brightness(1.1);
+  box-shadow:
+    2px 0 4px rgba(0,0,0,.3),
+    4px 0 8px rgba(0,0,0,.15),
+    inset -2px 0 4px rgba(0,0,0,.15),
+    0 6px 16px rgba(0,0,0,.4);
+}
+.book:active .book-spine { transform: translateY(-3px) scale(.97); }
 
-.book-emoji {
-  font-size: 36px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
-}
-.book-title-on-spine {
-  color: rgba(255,255,255,.95);
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
-  padding: 0 10px;
-  margin-top: 8px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0,0,0,.2);
-}
-.book-ribbon {
+.spine-top-line,
+.spine-bottom-line {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 12px;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: rgba(255,255,255,.15);
 }
-.book-author-label {
-  font-size: 11px;
-  color: var(--text2);
+.spine-top-line { top: 10px; }
+.spine-bottom-line { bottom: 16px; }
+
+.spine-title {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,.85);
   text-align: center;
-  margin-top: 6px;
-  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0,0,0,.3);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-height: 120px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.spine-author {
+  writing-mode: vertical-rl;
+  font-size: 9px;
+  color: rgba(255,255,255,.5);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-height: 60px;
+  margin-top: 6px;
+}
+
+.spine-status {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 @media (min-width: 1600px) {
-  .book { width: 170px; }
   .book-spine { height: 210px; }
-  .book-emoji { font-size: 42px; }
-  .book-title-on-spine { font-size: 14px; }
+  .spine-title { font-size: 13px; max-height: 140px; }
 }
 @media (max-width: 820px) {
-  .book { width: 130px; }
   .book-spine { height: 160px; }
-  .book-emoji { font-size: 28px; }
+  .spine-title { max-height: 100px; }
 }
 @media (max-width: 600px) {
-  .book { width: calc(50% - 8px); }
-  .book-spine { height: 170px; }
-}
-@media (max-width: 380px) {
-  .book { width: calc(50% - 8px); }
-  .book-spine { height: 130px; }
+  .book-spine { height: 150px; width: 42px; }
+  .spine-title { font-size: 11px; max-height: 90px; }
 }
 </style>

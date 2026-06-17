@@ -53,22 +53,26 @@ const { stats } = useBooks()
 }
 .stats-left {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   flex-shrink: 0;
 }
 .stat-item {
   text-align: center;
   padding: 4px 0;
 }
-.stat-item .num { display: block; font-size: 32px; font-weight: 700; }
-.stat-item .label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
-.stat-item.total .num { color: #fff; }
-.stat-item.reading { border-top: 2px solid #3b82f6; padding-top: 8px; }
-.stat-item.reading .num { color: #3b82f6; }
-.stat-item.done { border-top: 2px solid #10b981; padding-top: 8px; }
-.stat-item.done .num { color: #10b981; }
-.stat-item.wish { border-top: 2px solid #f59e0b; padding-top: 8px; }
-.stat-item.wish .num { color: #f59e0b; }
+.stat-item .num { display: block; font-size: 32px; font-weight: 700; color: var(--text); }
+.stat-item .label {
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 1px;
+  display: block;
+  margin-top: 2px;
+}
+.stat-item { border-top: 2px solid var(--border); padding-top: 8px; }
+.stat-item.total { border-top-color: var(--text); }
+.stat-item.reading { border-top-color: var(--c-tech); }
+.stat-item.done { border-top-color: #6a9e7a; }
+.stat-item.wish { border-top-color: var(--c-nonfic); }
 
 .stats-right {
   flex: 1;
@@ -76,8 +80,8 @@ const { stats } = useBooks()
 }
 .stacked-bar {
   display: flex;
-  height: 12px;
-  border-radius: 6px;
+  height: 6px;
+  border-radius: 3px;
   overflow: hidden;
   background: var(--surface);
 }
@@ -98,7 +102,7 @@ const { stats } = useBooks()
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
+  gap: 4px 16px;
   margin-top: 8px;
 }
 .legend-item {
@@ -107,9 +111,9 @@ const { stats } = useBooks()
   gap: 4px;
 }
 .legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 .legend-dot[data-genre="小说"] { background: var(--c-novel); }
@@ -121,7 +125,7 @@ const { stats } = useBooks()
 .legend-dot[data-genre="非虚构"] { background: var(--c-nonfic); }
 .legend-dot[data-genre="文学"] { background: var(--c-literature); }
 .legend-dot[data-genre="艺术"] { background: var(--c-art); }
-.legend-text { font-size: 12px; color: var(--text2); }
+.legend-text { font-size: 11px; color: var(--text2); }
 
 @media (max-width: 600px) {
   .stats { flex-direction: column; gap: 20px; align-items: stretch; }

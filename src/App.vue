@@ -29,25 +29,32 @@ provide('selectBook', (book: Book) => {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #1a1a2e;
-  --surface: #16213e;
-  --surface-light: #1f3050;
-  --text: #e8e8e8;
-  --text2: #8b8fa3;
-  --border: #2a3a5c;
-  --accent: #e94560;
-  --gold: #fbbf24;
+  --bg: #1c1f26;
+  --surface: #252830;
+  --surface-light: #2e3139;
+  --paper: #f5f0e8;
+  --paper-text: #3a3530;
+  --wood: #8b7355;
+  --wood-dark: #5c4a32;
+  --text: #d4d0c8;
+  --text2: #8a8578;
+  --border: #3a3d45;
+  --accent: #c4956a;
+  --gold: #c4956a;
   --shadow: 0 2px 8px rgba(0,0,0,.3);
-  --radius: 10px;
-  --c-novel: #e94560;
-  --c-nonfic: #f59e0b;
-  --c-history: #8b5cf6;
-  --c-science: #06b6d4;
-  --c-tech: #3b82f6;
-  --c-philosophy: #a855f7;
-  --c-art: #ec4899;
-  --c-business: #14b8a6;
-  --c-literature: #f97316;
+  --radius: 4px;
+  --c-novel: #a85c5c;
+  --c-nonfic: #9e8a5c;
+  --c-history: #7a6a8e;
+  --c-science: #5a8a8e;
+  --c-tech: #5c7a9e;
+  --c-philosophy: #8a6a7a;
+  --c-art: #8e5a6a;
+  --c-business: #5a8a7a;
+  --c-literature: #9e7a5c;
+  --c-biography: #6a6a8e;
+  --c-other: #6b6b6b;
+  --serif: "Noto Serif SC", "STSong", "Songti SC", Georgia, "Times New Roman", serif;
 }
 
 body {
