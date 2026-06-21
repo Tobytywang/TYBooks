@@ -1,22 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import type { Book } from '../types/book'
 
 const props = defineProps<{ book: Book }>()
 const emit = defineEmits<{ click: [] }>()
 
 const titleRef = ref<HTMLElement | null>(null)
+const spineRef = ref<HTMLElement | null>(null)
 const showAuthor = ref(true)
 
-onMounted(() => {
+function getThreshold() {
+  const w = window.innerWidth
+  if (w >= 1600) return 130
+  if (w >= 820) return 90
+  if (w >= 600) return 65
+  return 55
+}
+
+function getAuthorTop() {
+  const w = window.innerWidth
+  if (w >= 1600) return 140
+  if (w >= 820) return 110
+  if (w >= 600) return 90
+  return 78
+}
+
+const authorTop = ref(getAuthorTop())
+
+function measure() {
+  authorTop.value = getAuthorTop()
   if (titleRef.value) {
     const el = titleRef.value
     const orig = el.style.maxHeight
     el.style.maxHeight = 'none'
     const fullHeight = el.scrollHeight
     el.style.maxHeight = orig
-    showAuthor.value = fullHeight <= 90
+    showAuthor.value = fullHeight <= getThreshold()
   }
+}
+
+onMounted(() => {
+  measure()
+  window.addEventListener('resize', measure)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', measure)
 })
 
 const genreColors: Record<string, string> = {
@@ -55,7 +84,7 @@ const statusColors: Record<string, string> = {
       ></span>
       <div class="spine-text">
         <span ref="titleRef" class="spine-title" :class="{ 'no-author': !showAuthor }">{{ book.title }}</span>
-        <span v-if="showAuthor" class="spine-author">{{ book.author }}</span>
+        <span v-if="showAuthor" class="spine-author" :style="{ top: authorTop + 'px' }">{{ book.author }}</span>
       </div>
       <span class="spine-bottom-line"></span>
     </div>
@@ -79,6 +108,7 @@ const statusColors: Record<string, string> = {
   justify-content: center;
   position: relative;
   padding: 16px 4px;
+  overflow: hidden;
   box-shadow:
     2px 0 4px rgba(0,0,0,.3),
     4px 0 8px rgba(0,0,0,.15),
@@ -143,7 +173,6 @@ const statusColors: Record<string, string> = {
   max-height: 60px;
   line-height: 1;
   position: absolute;
-  top: 110px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -164,9 +193,11 @@ const statusColors: Record<string, string> = {
 @media (max-width: 820px) {
   .book-spine { height: 160px; }
   .spine-title { max-height: 100px; }
+  .spine-author { max-height: 40px; }
 }
 @media (max-width: 600px) {
   .book-spine { height: 150px; width: 42px; }
   .spine-title { font-size: 11px; max-height: 90px; }
+  .spine-author { max-height: 40px; }
 }
 </style>
