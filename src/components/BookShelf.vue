@@ -178,6 +178,7 @@ watch(() => groupedBooks.value, () => {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 1;
 }
 
 .shelf-board {
@@ -208,6 +209,7 @@ watch(() => groupedBooks.value, () => {
   }
   .shelf-header::before { display: none; }
   .shelf-header h2, .shelf-header .count { padding-left: 0; }
+  .shelf-body { width: 100%; }
   .shelf-grid { gap: 16px 6px; }
   .shelf-header h2 { font-size: 13px; }
 }

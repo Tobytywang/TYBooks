@@ -85,8 +85,10 @@ router.get('/stats', (_req, res) => {
   const done = db.prepare("SELECT COUNT(*) as c FROM books WHERE status = 'done'").get().c
   const reading = db.prepare("SELECT COUNT(*) as c FROM books WHERE status = 'reading'").get().c
   const wish = db.prepare("SELECT COUNT(*) as c FROM books WHERE status = 'wish'").get().c
+  const tobuy = db.prepare("SELECT COUNT(*) as c FROM books WHERE status = 'tobuy'").get().c
+  const reread = db.prepare("SELECT COUNT(*) as c FROM books WHERE status = 'reread'").get().c
   const byGenre = db.prepare('SELECT genre, COUNT(*) as count FROM books GROUP BY genre ORDER BY count DESC').all()
-  res.json({ total, done, reading, wish, byGenre })
+  res.json({ total, done, reading, wish, tobuy, reread, byGenre })
 })
 
 export default router

@@ -9,6 +9,8 @@ const statusMap: Record<string, { text: string; cls: string }> = {
   done: { text: '已读', cls: 'done' },
   reading: { text: '在读', cls: 'reading' },
   wish: { text: '想读', cls: 'wish' },
+  tobuy: { text: '待购', cls: 'tobuy' },
+  reread: { text: '重读', cls: 'reread' },
 }
 
 const genreColors: Record<string, string> = {
@@ -35,7 +37,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <div class="book-overlay active" @click.self="emit('close')">
+  <div class="book-overlay" @click.self="emit('close')">
     <div class="open-book">
       <div class="open-book-inner">
         <div
@@ -89,12 +91,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
 .open-book {
   max-width: 780px;
   width: 100%;
-  animation: bookAppear .3s ease;
-}
-
-@keyframes bookAppear {
-  from { opacity: 0; transform: scale(.95); }
-  to { opacity: 1; transform: scale(1); }
+  perspective: 1200px;
 }
 
 .open-book-inner {
@@ -103,6 +100,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  transform-style: preserve-3d;
 }
 
 .book-left {
@@ -115,6 +113,19 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
   padding: 40px 24px;
   position: relative;
   box-shadow: inset -6px 0 12px rgba(0,0,0,.2);
+  transform-origin: right center;
+}
+
+.book-right {
+  flex: 1;
+  padding: 32px 28px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--paper-text);
+  box-shadow: inset 4px 0 10px rgba(0,0,0,.06);
+  transform-origin: left center;
 }
 
 .cover-top-line,
@@ -144,17 +155,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
   text-align: center;
 }
 
-.book-right {
-  flex: 1;
-  padding: 32px 28px;
-  min-height: 400px;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  color: var(--paper-text);
-  box-shadow: inset 4px 0 10px rgba(0,0,0,.06);
+.detail-status {
+  margin-bottom: 12px;
 }
-
 .status-badge {
   display: inline-block;
   padding: 3px 12px;
@@ -165,6 +168,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
 .status-badge.done { background: rgba(106,158,122,.15); color: #5a8a6a; }
 .status-badge.reading { background: rgba(92,122,158,.15); color: #5c7a9e; }
 .status-badge.wish { background: rgba(158,138,92,.15); color: #8a7a5c; }
+.status-badge.tobuy { background: rgba(158,122,90,.15); color: #9e7a5a; }
+.status-badge.reread { background: rgba(122,106,158,.15); color: #7a6a9e; }
 
 .detail-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
 .detail-tag {
@@ -233,6 +238,10 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
     padding: 28px 20px;
     min-height: unset;
     box-shadow: inset 0 -4px 8px rgba(0,0,0,.1);
+    transform-origin: bottom center;
+  }
+  .book-right {
+    transform-origin: top center;
   }
   .cover-top-line { display: none; }
   .cover-bottom-line { display: none; }

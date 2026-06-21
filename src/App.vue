@@ -22,7 +22,9 @@ provide('selectBook', (book: Book) => {
     <StatsPanel />
     <BookShelf />
   </main>
-  <BookDetail v-if="selectedBook" :book="selectedBook" @close="selectedBook = null" />
+  <Transition name="book-overlay">
+    <BookDetail v-if="selectedBook" :book="selectedBook" @close="selectedBook = null" />
+  </Transition>
 </template>
 
 <style>
@@ -66,4 +68,48 @@ body {
 }
 
 .container { max-width: 1600px; margin: 0 auto; padding: 0 32px; }
+
+.book-overlay-enter-active,
+.book-overlay-leave-active {
+  transition: opacity .3s ease;
+}
+.book-overlay-enter-active .book-overlay,
+.book-overlay-leave-active .book-overlay {
+  transition: opacity .3s ease;
+}
+.book-overlay-enter-from,
+.book-overlay-leave-to {
+  opacity: 0;
+}
+
+.book-overlay-enter-active .book-left {
+  animation: pageLeftOpen .4s ease forwards;
+}
+.book-overlay-enter-active .book-right {
+  animation: pageRightOpen .4s ease .1s forwards;
+  opacity: 0;
+}
+.book-overlay-leave-active .book-left {
+  animation: pageLeftClose .3s ease forwards;
+}
+.book-overlay-leave-active .book-right {
+  animation: pageRightClose .3s ease forwards;
+}
+
+@keyframes pageLeftOpen {
+  from { transform: rotateY(-90deg); }
+  to { transform: rotateY(0deg); }
+}
+@keyframes pageRightOpen {
+  from { transform: rotateY(90deg); opacity: 0; }
+  to { transform: rotateY(0deg); opacity: 1; }
+}
+@keyframes pageLeftClose {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(-90deg); }
+}
+@keyframes pageRightClose {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(90deg); }
+}
 </style>

@@ -26,6 +26,8 @@ const { search, statusFilter, sortBy, genres, genreFilter } = useBooks()
           <option value="done">已读</option>
           <option value="reading">在读</option>
           <option value="wish">想读</option>
+          <option value="tobuy">待购</option>
+          <option value="reread">重读</option>
         </select>
         <select v-model="sortBy" class="filter-select">
           <option value="id">默认排序</option>

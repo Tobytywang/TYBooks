@@ -23,6 +23,14 @@ const { stats } = useBooks()
         <span class="num">{{ stats.wish }}</span>
         <span class="label">想读</span>
       </div>
+      <div class="stat-item tobuy">
+        <span class="num">{{ stats.tobuy }}</span>
+        <span class="label">待购</span>
+      </div>
+      <div class="stat-item reread">
+        <span class="num">{{ stats.reread }}</span>
+        <span class="label">重读</span>
+      </div>
     </div>
     <div class="stats-right">
       <div class="stacked-bar">
@@ -73,6 +81,8 @@ const { stats } = useBooks()
 .stat-item.reading { border-top-color: var(--c-tech); }
 .stat-item.done { border-top-color: #6a9e7a; }
 .stat-item.wish { border-top-color: var(--c-nonfic); }
+.stat-item.tobuy { border-top-color: #9e7a5a; }
+.stat-item.reread { border-top-color: #7a6a9e; }
 
 .stats-right {
   flex: 1;

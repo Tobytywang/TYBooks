@@ -22,6 +22,8 @@ const statusColors: Record<string, string> = {
   done: '#6a9e7a',
   reading: '#5c7a9e',
   wish: '#9e8a5c',
+  tobuy: '#9e7a5a',
+  reread: '#7a6a9e',
 }
 </script>
 
@@ -32,13 +34,13 @@ const statusColors: Record<string, string> = {
       :style="{ background: genreColors[book.genre] || 'var(--c-other)' }"
     >
       <span class="spine-top-line"></span>
+      <span
+        class="spine-status-bar"
+        :style="{ background: statusColors[book.status] }"
+      ></span>
       <span class="spine-title">{{ book.title }}</span>
       <span class="spine-author">{{ book.author }}</span>
       <span class="spine-bottom-line"></span>
-      <span
-        class="spine-status"
-        :style="{ background: statusColors[book.status] }"
-      ></span>
     </div>
   </div>
 </template>
@@ -116,14 +118,13 @@ const statusColors: Record<string, string> = {
   margin-top: 6px;
 }
 
-.spine-status {
+.spine-status-bar {
   position: absolute;
-  bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px 4px 0 0;
 }
 
 @media (min-width: 1600px) {
