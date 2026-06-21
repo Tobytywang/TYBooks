@@ -3,7 +3,7 @@ import type { Book, Stats, StatusFilter, SortKey } from '../types/book'
 import { fetchBooks, fetchStats } from '../api/books'
 
 const books = ref<Book[]>([])
-const stats = ref<Stats>({ total: 0, done: 0, reading: 0, wish: 0, byGenre: [] })
+const stats = ref<Stats>({ total: 0, done: 0, reading: 0, wish: 0, tobuy: 0, reread: 0, byGenre: [] })
 const loading = ref(false)
 
 const search = ref('')

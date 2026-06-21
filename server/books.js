@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import db from './db.js'
+import { authMiddleware } from './middleware/auth.js'
 
 const router = Router()
 
@@ -39,7 +40,7 @@ router.get('/books/:id', (req, res) => {
   res.json(book)
 })
 
-router.post('/books', (req, res) => {
+router.post('/books', authMiddleware, (req, res) => {
   const { emoji, title, author, genre, status, rating, review, tags } = req.body
   if (!title || !author || !genre) {
     return res.status(400).json({ error: 'title, author, genre are required' })
@@ -51,7 +52,7 @@ router.post('/books', (req, res) => {
   res.json(book)
 })
 
-router.put('/books/:id', (req, res) => {
+router.put('/books/:id', authMiddleware, (req, res) => {
   const existing = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id)
   if (!existing) return res.status(404).json({ error: 'Not found' })
 
@@ -73,7 +74,7 @@ router.put('/books/:id', (req, res) => {
   res.json(book)
 })
 
-router.delete('/books/:id', (req, res) => {
+router.delete('/books/:id', authMiddleware, (req, res) => {
   const existing = db.prepare('SELECT * FROM books WHERE id = ?').get(req.params.id)
   if (!existing) return res.status(404).json({ error: 'Not found' })
   db.prepare('DELETE FROM books WHERE id = ?').run(req.params.id)

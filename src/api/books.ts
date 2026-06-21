@@ -1,4 +1,5 @@
 import type { Book, BookCreate, Stats, StatusFilter, SortKey } from '../types/book'
+import { useAuth } from '../composables/useAuth'
 
 const BASE = '/api'
 
@@ -24,25 +25,34 @@ export async function fetchBook(id: number): Promise<Book> {
 }
 
 export async function createBook(data: BookCreate): Promise<Book> {
+  const { authHeaders } = useAuth()
   const res = await fetch(`${BASE}/books`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   })
+  if (res.status === 401) throw new Error('未登录或登录已过期')
   return res.json()
 }
 
 export async function updateBook(id: number, data: Partial<BookCreate>): Promise<Book> {
+  const { authHeaders } = useAuth()
   const res = await fetch(`${BASE}/books/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   })
+  if (res.status === 401) throw new Error('未登录或登录已过期')
   return res.json()
 }
 
 export async function deleteBook(id: number): Promise<void> {
-  await fetch(`${BASE}/books/${id}`, { method: 'DELETE' })
+  const { authHeaders } = useAuth()
+  const res = await fetch(`${BASE}/books/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  if (res.status === 401) throw new Error('未登录或登录已过期')
 }
 
 export async function fetchStats(): Promise<Stats> {

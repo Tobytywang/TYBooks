@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3'
+import bcrypt from 'bcryptjs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { existsSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -25,6 +25,21 @@ db.exec(`
     tags TEXT DEFAULT ''
   )
 `)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL
+  )
+`)
+
+const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get()
+if (userCount.c === 0) {
+  const hash = bcrypt.hashSync('admin123', 12)
+  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hash)
+  console.log('Created default admin user (username: admin, password: admin123)')
+}
 
 const count = db.prepare('SELECT COUNT(*) as c FROM books').get()
 if (count.c === 0) {

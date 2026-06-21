@@ -34,6 +34,7 @@ const { search, statusFilter, sortBy, genres, genreFilter } = useBooks()
           <option value="title">按书名</option>
           <option value="rating">按评分</option>
         </select>
+        <RouterLink to="/admin" class="admin-link">管理</RouterLink>
       </div>
     </div>
   </header>
@@ -96,6 +97,21 @@ header {
   transition: border-color .15s;
 }
 .filter-select:focus { border-color: var(--accent); }
+.admin-link {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 13px;
+  text-decoration: none;
+  transition: all .15s;
+  letter-spacing: 1px;
+}
+.admin-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 @media (max-width: 600px) {
   header { padding: 24px 0 16px; }
