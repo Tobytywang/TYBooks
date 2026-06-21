@@ -1,8 +1,23 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import type { Book } from '../types/book'
 
-defineProps<{ book: Book }>()
+const props = defineProps<{ book: Book }>()
 const emit = defineEmits<{ click: [] }>()
+
+const titleRef = ref<HTMLElement | null>(null)
+const showAuthor = ref(true)
+
+onMounted(() => {
+  if (titleRef.value) {
+    const el = titleRef.value
+    const orig = el.style.maxHeight
+    el.style.maxHeight = 'none'
+    const fullHeight = el.scrollHeight
+    el.style.maxHeight = orig
+    showAuthor.value = fullHeight <= 90
+  }
+})
 
 const genreColors: Record<string, string> = {
   '小说': 'var(--c-novel)',
@@ -38,8 +53,10 @@ const statusColors: Record<string, string> = {
         class="spine-status-bar"
         :style="{ background: statusColors[book.status] }"
       ></span>
-      <span class="spine-title">{{ book.title }}</span>
-      <span class="spine-author">{{ book.author }}</span>
+      <div class="spine-text">
+        <span ref="titleRef" class="spine-title" :class="{ 'no-author': !showAuthor }">{{ book.title }}</span>
+        <span v-if="showAuthor" class="spine-author">{{ book.author }}</span>
+      </div>
       <span class="spine-bottom-line"></span>
     </div>
   </div>
@@ -90,32 +107,45 @@ const statusColors: Record<string, string> = {
 .spine-top-line { top: 10px; }
 .spine-bottom-line { bottom: 16px; }
 
+.spine-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+  overflow: hidden;
+}
+
 .spine-title {
   writing-mode: vertical-rl;
   font-size: 12px;
   font-weight: 500;
   color: rgba(255,255,255,.85);
-  text-align: center;
   text-shadow: 0 1px 1px rgba(0,0,0,.3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-height: 120px;
-  flex: 1;
-  display: flex;
-  align-items: center;
+  line-height: 1;
+}
+
+.spine-title.no-author {
+  max-height: none;
 }
 
 .spine-author {
   writing-mode: vertical-rl;
   font-size: 9px;
   color: rgba(255,255,255,.5);
-  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-height: 60px;
-  margin-top: 6px;
+  line-height: 1;
+  position: absolute;
+  top: 110px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .spine-status-bar {
