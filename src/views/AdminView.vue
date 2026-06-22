@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
-import { fetchBooks, deleteBook } from '../api/books'
-import type { Book, StatusFilter } from '../types/book'
+import { fetchBooksPaged, fetchBooks, deleteBook } from '../api/books'
+import type { Book, StatusFilter, PaginatedBooks } from '../types/book'
 
 const router = useRouter()
 const { logout, verify } = useAuth()
 
 const books = ref<Book[]>([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(10)
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
 const search = ref('')
 const genreFilter = ref('')
 const statusFilter = ref<StatusFilter>('')
@@ -16,52 +21,48 @@ const loading = ref(false)
 const deleteTarget = ref<Book | null>(null)
 const deleting = ref(false)
 
-const genres = computed(() => {
-  const set = new Set(books.value.map(b => b.genre))
-  return Array.from(set).sort()
+const genres = ref<string[]>([])
+
+const pageSizes = [10, 20, 50, 100]
+
+const pageNumbers = computed(() => {
+  const t = totalPages.value
+  const p = page.value
+  const pages: (number | string)[] = []
+  if (t <= 7) {
+    for (let i = 1; i <= t; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (p > 3) pages.push('...')
+    const start = Math.max(2, p - 1)
+    const end = Math.min(t - 1, p + 1)
+    for (let i = start; i <= end; i++) pages.push(i)
+    if (p < t - 2) pages.push('...')
+    pages.push(t)
+  }
+  return pages
 })
-
-const filteredBooks = computed(() => {
-  return books.value.filter(b => {
-    if (statusFilter.value && b.status !== statusFilter.value) return false
-    if (genreFilter.value && b.genre !== genreFilter.value) return false
-    if (search.value) {
-      const q = search.value.toLowerCase()
-      if (!b.title.toLowerCase().includes(q) && !b.author.toLowerCase().includes(q)) return false
-    }
-    return true
-  })
-})
-
-const statusMap: Record<string, string> = {
-  done: '已读',
-  reading: '在读',
-  wish: '想读',
-  tobuy: '待购',
-  reread: '重读',
-}
-
-const genreColors: Record<string, string> = {
-  '小说': 'var(--c-novel)',
-  '非虚构': 'var(--c-nonfic)',
-  '历史': 'var(--c-history)',
-  '科学': 'var(--c-science)',
-  '技术': 'var(--c-tech)',
-  '哲学': 'var(--c-philosophy)',
-  '艺术': 'var(--c-art)',
-  '商业': 'var(--c-business)',
-  '文学': 'var(--c-literature)',
-  '传记': 'var(--c-biography)',
-  '其他': 'var(--c-other)',
-}
 
 async function loadBooks() {
   loading.value = true
   try {
-    books.value = await fetchBooks()
+    const result: PaginatedBooks = await fetchBooksPaged({
+      search: search.value || undefined,
+      genre: genreFilter.value || undefined,
+      status: statusFilter.value || undefined,
+      page: page.value,
+      pageSize: pageSize.value,
+    })
+    books.value = result.data
+    total.value = result.total
   } finally {
     loading.value = false
   }
+}
+
+async function loadGenres() {
+  const all = await fetchBooks()
+  genres.value = Array.from(new Set(all.map(b => b.genre))).sort()
 }
 
 function confirmDelete(book: Book) {
@@ -73,8 +74,8 @@ async function doDelete() {
   deleting.value = true
   try {
     await deleteBook(deleteTarget.value.id)
-    books.value = books.value.filter(b => b.id !== deleteTarget.value!.id)
     deleteTarget.value = null
+    loadBooks()
   } catch (e: any) {
     if (e.message?.includes('未登录')) {
       logout()
@@ -90,12 +91,32 @@ function handleLogout() {
   router.push('/admin')
 }
 
+function goToPage(p: number | string) {
+  if (typeof p === 'string') return
+  page.value = p
+}
+
+watch([search, genreFilter, statusFilter], () => {
+  page.value = 1
+  loadBooks()
+})
+
+watch(pageSize, () => {
+  page.value = 1
+  loadBooks()
+})
+
+watch(page, () => {
+  loadBooks()
+})
+
 onMounted(async () => {
   const valid = await verify()
   if (!valid) {
     router.push('/admin')
     return
   }
+  loadGenres()
   loadBooks()
 })
 </script>
@@ -134,7 +155,7 @@ onMounted(async () => {
       </div>
 
       <div class="table-wrap">
-        <table v-if="!loading && filteredBooks.length > 0">
+        <table v-if="!loading && books.length > 0">
           <thead>
             <tr>
               <th class="col-emoji">Emoji</th>
@@ -147,7 +168,7 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="book in filteredBooks" :key="book.id">
+            <tr v-for="book in books" :key="book.id">
               <td class="col-emoji">{{ book.emoji }}</td>
               <td class="col-title">{{ book.title }}</td>
               <td class="col-author">{{ book.author }}</td>
@@ -164,14 +185,40 @@ onMounted(async () => {
                 <span v-else class="no-rating">-</span>
               </td>
               <td class="col-actions">
-                <RouterLink :to="`/admin/books/${book.id}/edit`" class="action-btn edit">编辑</RouterLink>
-                <button @click="confirmDelete(book)" class="action-btn delete">删除</button>
+                <div class="action-group">
+                  <RouterLink :to="`/admin/books/${book.id}/edit`" class="action-btn edit">编辑</RouterLink>
+                  <button @click="confirmDelete(book)" class="action-btn delete">删除</button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
         <div v-else-if="loading" class="empty">加载中...</div>
         <div v-else class="empty">没有找到匹配的书籍</div>
+      </div>
+
+      <div v-if="total > 0" class="pagination">
+        <span class="pag-total">共 {{ total }} 条</span>
+        <div class="pag-size">
+          <span class="pag-size-label">每页</span>
+          <select v-model="pageSize" class="pag-size-select">
+            <option v-for="s in pageSizes" :key="s" :value="s">{{ s }}</option>
+          </select>
+          <span class="pag-size-label">条</span>
+        </div>
+        <div class="pag-nav">
+          <button class="pag-btn" :disabled="page <= 1" @click="goToPage(page - 1)">&lsaquo;</button>
+          <template v-for="p in pageNumbers" :key="p">
+            <span v-if="p === '...'" class="pag-ellipsis">...</span>
+            <button
+              v-else
+              class="pag-btn"
+              :class="{ active: p === page }"
+              @click="goToPage(p)"
+            >{{ p }}</button>
+          </template>
+          <button class="pag-btn" :disabled="page >= totalPages" @click="goToPage(page + 1)">&rsaquo;</button>
+        </div>
       </div>
     </main>
 
@@ -191,6 +238,30 @@ onMounted(async () => {
     </Teleport>
   </div>
 </template>
+
+<script lang="ts">
+const statusMap: Record<string, string> = {
+  done: '已读',
+  reading: '在读',
+  wish: '想读',
+  tobuy: '待购',
+  reread: '重读',
+}
+
+const genreColors: Record<string, string> = {
+  '小说': 'var(--c-novel)',
+  '非虚构': 'var(--c-nonfic)',
+  '历史': 'var(--c-history)',
+  '科学': 'var(--c-science)',
+  '技术': 'var(--c-tech)',
+  '哲学': 'var(--c-philosophy)',
+  '艺术': 'var(--c-art)',
+  '商业': 'var(--c-business)',
+  '文学': 'var(--c-literature)',
+  '传记': 'var(--c-biography)',
+  '其他': 'var(--c-other)',
+}
+</script>
 
 <style scoped>
 .admin-page {
@@ -338,7 +409,7 @@ table {
 
 thead th {
   text-align: left;
-  padding: 10px 12px;
+  padding: 6px 10px;
   color: var(--text2);
   font-weight: 500;
   font-size: 11px;
@@ -348,7 +419,7 @@ thead th {
 }
 
 tbody td {
-  padding: 12px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -359,14 +430,32 @@ tbody td {
 .col-genre { width: 80px; }
 .col-status { width: 70px; }
 .col-rating { width: 80px; }
-.col-actions { width: 120px; }
+.col-actions { width: 110px; white-space: nowrap; }
 
 .genre-tag {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 1px 8px;
   border-radius: 2px;
   font-size: 11px;
   color: rgba(255,255,255,.85);
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 2px;
+  font-size: 11px;
+}
+
+.action-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity .15s;
+  white-space: nowrap;
 }
 
 .status-tag {
@@ -417,11 +506,100 @@ tbody td {
   opacity: .8;
 }
 
+.action-group {
+  display: flex;
+  gap: 4px;
+}
+
 .empty {
   text-align: center;
   padding: 60px 0;
   color: var(--text2);
   font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.pag-total {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.pag-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pag-size-label {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.pag-size-select {
+  padding: 4px 20px 4px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238a8578' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+.pag-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.pag-btn {
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pag-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pag-btn:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
+
+.pag-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.pag-ellipsis {
+  font-size: 12px;
+  color: var(--text2);
+  padding: 0 4px;
 }
 
 .confirm-overlay {
@@ -509,6 +687,16 @@ tbody td {
   }
   .filter-select {
     width: 100%;
+  }
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .pag-nav {
+    margin-left: 0;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 </style>

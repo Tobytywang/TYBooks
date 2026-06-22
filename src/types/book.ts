@@ -33,3 +33,10 @@ export interface Stats {
 
 export type SortKey = 'title' | 'rating' | 'id'
 export type StatusFilter = '' | 'done' | 'reading' | 'wish' | 'tobuy' | 'reread'
+
+export interface PaginatedBooks {
+  data: Book[]
+  total: number
+  page: number
+  pageSize: number
+}

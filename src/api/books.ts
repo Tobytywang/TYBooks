@@ -1,4 +1,4 @@
-import type { Book, BookCreate, Stats, StatusFilter, SortKey } from '../types/book'
+import type { Book, BookCreate, Stats, StatusFilter, SortKey, PaginatedBooks } from '../types/book'
 import { useAuth } from '../composables/useAuth'
 
 const BASE = '/api'
@@ -16,6 +16,25 @@ export async function fetchBooks(params?: {
   if (params?.sort) sp.set('sort', params.sort)
   const qs = sp.toString()
   const res = await fetch(`${BASE}/books${qs ? '?' + qs : ''}`)
+  return res.json()
+}
+
+export async function fetchBooksPaged(params: {
+  search?: string
+  genre?: string
+  status?: StatusFilter
+  sort?: SortKey
+  page: number
+  pageSize: number
+}): Promise<PaginatedBooks> {
+  const sp = new URLSearchParams()
+  if (params.search) sp.set('search', params.search)
+  if (params.genre) sp.set('genre', params.genre)
+  if (params.status) sp.set('status', params.status)
+  if (params.sort) sp.set('sort', params.sort)
+  sp.set('page', String(params.page))
+  sp.set('pageSize', String(params.pageSize))
+  const res = await fetch(`${BASE}/books?${sp.toString()}`)
   return res.json()
 }
 

@@ -5,7 +5,7 @@ import { authMiddleware } from './middleware/auth.js'
 const router = Router()
 
 router.get('/books', (req, res) => {
-  const { search, genre, status, sort } = req.query
+  const { search, genre, status, sort, page, pageSize } = req.query
 
   let sql = 'SELECT * FROM books WHERE 1=1'
   const params = []
@@ -29,6 +29,16 @@ router.get('/books', (req, res) => {
     id: 'id ASC',
   }
   sql += ` ORDER BY ${sortMap[sort] || 'id ASC'}`
+
+  if (page !== undefined) {
+    const p = Math.max(1, Number(page) || 1)
+    const ps = Math.max(1, Number(pageSize) || 20)
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total')
+    const { total } = db.prepare(countSql).get(...params)
+    const offset = (p - 1) * ps
+    const data = db.prepare(sql + ' LIMIT ? OFFSET ?').all(...params, ps, offset)
+    return res.json({ data, total, page: p, pageSize: ps })
+  }
 
   const books = db.prepare(sql).all(...params)
   res.json(books)
