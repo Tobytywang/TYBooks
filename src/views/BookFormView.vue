@@ -88,69 +88,54 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="form-page">
-    <header class="form-header">
-      <div class="form-header-left">
-        <RouterLink to="/admin/dashboard" class="back-link">&larr; 返回管理</RouterLink>
-        <h1>{{ pageTitle }}</h1>
+  <main class="form-main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <RouterLink to="/admin/dashboard" class="ctrl-btn">返回管理</RouterLink>
+        <span class="toolbar-title">{{ pageTitle }}</span>
       </div>
-    </header>
+    </div>
 
-    <main class="form-main">
-      <div v-if="error" class="form-error">{{ error }}</div>
-      <BookForm
-        :book="existingBook"
-        v-model:form="form"
-        @submit="onSubmit"
-        @cancel="onCancel"
-      />
-      <div v-if="saving" class="saving-hint">正在保存...</div>
-    </main>
-  </div>
+    <div v-if="error" class="form-error">{{ error }}</div>
+    <BookForm
+      :book="existingBook"
+      v-model:form="form"
+      @submit="onSubmit"
+      @cancel="onCancel"
+    />
+    <div v-if="saving" class="saving-hint">正在保存...</div>
+  </main>
 </template>
 
 <style scoped>
-.form-page {
-  min-height: 100vh;
-}
-
-.form-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.form-header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.back-link {
-  font-size: 13px;
-  color: var(--text2);
-  text-decoration: none;
-  transition: color .15s;
-}
-
-.back-link:hover {
-  color: var(--accent);
-}
-
-.form-header h1 {
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: 3px;
-  color: var(--text);
-}
-
 .form-main {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 24px 32px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toolbar-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--text2);
+  text-transform: uppercase;
 }
 
 .form-error {
@@ -170,11 +155,15 @@ onMounted(async () => {
 }
 
 @media (max-width: 600px) {
-  .form-header {
+  .form-main {
     padding: 16px 20px;
   }
-  .form-main {
-    padding: 20px;
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-left {
+    flex-direction: column;
   }
 }
 </style>

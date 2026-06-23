@@ -90,13 +90,13 @@ const ratingValue = computed(() => form.value.rating ?? 0)
 
 <style scoped>
 .book-form {
-  max-width: 800px;
+  width: 100%;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 16px;
 }
 
 .field {
@@ -109,9 +109,9 @@ const ratingValue = computed(() => form.value.rating ?? 0)
 .field.span-4 { grid-column: span 4; }
 
 .field label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text2);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   letter-spacing: 1px;
 }
 
@@ -120,17 +120,35 @@ const ratingValue = computed(() => form.value.rating ?? 0)
 }
 
 .field input,
-.field select,
 .field textarea {
-  padding: 10px 14px;
+  padding: 8px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
   transition: border-color .15s;
   font-family: inherit;
+  line-height: 1.4;
+}
+
+.field select {
+  padding: 8px 28px 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8578' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color .15s;
+  line-height: 1.4;
 }
 
 .field input:focus,
@@ -141,24 +159,34 @@ const ratingValue = computed(() => form.value.rating ?? 0)
 
 .input-emoji {
   text-align: center;
-  font-size: 20px;
+  font-size: 18px;
+}
+
+.field select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8578' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  cursor: pointer;
 }
 
 .field textarea {
   resize: vertical;
-  min-height: 80px;
-  line-height: 1.8;
+  min-height: 72px;
+  line-height: 1.6;
 }
 
 .rating-input {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 0;
+  padding: 4px 0;
 }
 
 .star {
-  font-size: 22px;
+  font-size: 18px;
   color: var(--border);
   cursor: pointer;
   transition: color .15s;
@@ -186,16 +214,16 @@ const ratingValue = computed(() => form.value.rating ?? 0)
 
 .form-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 28px;
-  padding-top: 20px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 
 .btn-cancel,
 .btn-submit {
-  padding: 10px 24px;
+  padding: 8px 20px;
   border-radius: var(--radius);
   font-size: 13px;
   cursor: pointer;

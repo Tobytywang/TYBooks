@@ -49,6 +49,77 @@ body {
 
 .container { max-width: 1600px; margin: 0 auto; padding: 0 32px; }
 
+.ctrl-input {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.ctrl-input::placeholder { color: var(--text2); }
+.ctrl-input:focus { border-color: var(--accent); }
+
+.ctrl-select {
+  padding: 8px 28px 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8578' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color .15s;
+  line-height: 1.4;
+}
+.ctrl-select:focus { border-color: var(--accent); }
+
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ctrl-btn-accent {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity .15s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.ctrl-btn-accent:hover { opacity: .9; }
+
 .book-overlay-enter-active,
 .book-overlay-leave-active {
   transition: opacity .3s ease;

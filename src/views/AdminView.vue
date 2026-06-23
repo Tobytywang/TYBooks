@@ -86,11 +86,6 @@ async function doDelete() {
   }
 }
 
-function handleLogout() {
-  logout()
-  router.push('/admin')
-}
-
 function goToPage(p: number | string) {
   if (typeof p === 'string') return
   page.value = p
@@ -122,121 +117,108 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="admin-page">
-    <header class="admin-header">
-      <div class="admin-header-left">
-        <h1>藏书管理</h1>
-        <span class="admin-badge">ADMIN</span>
+  <main class="admin-main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input v-model="search" type="text" placeholder="搜索书名或作者" class="ctrl-input" style="width: 220px" />
+        <select v-model="genreFilter" class="ctrl-select">
+          <option value="">全部分类</option>
+          <option v-for="g in genres" :key="g" :value="g">{{ g }}</option>
+        </select>
+        <select v-model="statusFilter" class="ctrl-select">
+          <option value="">全部状态</option>
+          <option value="done">已读</option>
+          <option value="reading">在读</option>
+          <option value="wish">想读</option>
+          <option value="tobuy">待购</option>
+          <option value="reread">重读</option>
+        </select>
       </div>
-      <nav class="admin-nav">
-        <RouterLink to="/" class="nav-link">返回书架</RouterLink>
-        <button @click="handleLogout" class="nav-link logout">退出登录</button>
-      </nav>
-    </header>
+      <RouterLink to="/admin/books/new" class="ctrl-btn-accent">+ 新增书籍</RouterLink>
+    </div>
 
-    <main class="admin-main">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <input v-model="search" type="text" placeholder="搜索书名或作者" class="search-input" />
-          <select v-model="genreFilter" class="filter-select">
-            <option value="">全部分类</option>
-            <option v-for="g in genres" :key="g" :value="g">{{ g }}</option>
-          </select>
-          <select v-model="statusFilter" class="filter-select">
-            <option value="">全部状态</option>
-            <option value="done">已读</option>
-            <option value="reading">在读</option>
-            <option value="wish">想读</option>
-            <option value="tobuy">待购</option>
-            <option value="reread">重读</option>
-          </select>
-        </div>
-        <RouterLink to="/admin/books/new" class="add-btn">+ 新增书籍</RouterLink>
+    <div class="table-wrap">
+      <table v-if="!loading && books.length > 0">
+        <thead>
+          <tr>
+            <th class="col-emoji">Emoji</th>
+            <th class="col-title">书名</th>
+            <th class="col-author">作者</th>
+            <th class="col-genre">分类</th>
+            <th class="col-status">状态</th>
+            <th class="col-rating">评分</th>
+            <th class="col-actions">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="book in books" :key="book.id">
+            <td class="col-emoji">{{ book.emoji }}</td>
+            <td class="col-title">{{ book.title }}</td>
+            <td class="col-author">{{ book.author }}</td>
+            <td class="col-genre">
+              <span class="genre-tag" :style="{ background: genreColors[book.genre] || 'var(--c-other)' }">
+                {{ book.genre }}
+              </span>
+            </td>
+            <td class="col-status">
+              <span class="status-tag" :class="book.status">{{ statusMap[book.status] }}</span>
+            </td>
+            <td class="col-rating">
+              <span v-if="book.rating > 0" class="stars">{{ '★'.repeat(book.rating) }}</span>
+              <span v-else class="no-rating">-</span>
+            </td>
+            <td class="col-actions">
+              <div class="action-group">
+                <RouterLink :to="`/admin/books/${book.id}/edit`" class="action-btn edit">编辑</RouterLink>
+                <button @click="confirmDelete(book)" class="action-btn delete">删除</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-else-if="loading" class="empty">加载中...</div>
+      <div v-else class="empty">没有找到匹配的书籍</div>
+    </div>
+
+    <div v-if="total > 0" class="pagination">
+      <span class="pag-total">共 {{ total }} 条</span>
+      <div class="pag-size">
+        <span class="pag-size-label">每页</span>
+        <select v-model="pageSize" class="pag-size-select">
+          <option v-for="s in pageSizes" :key="s" :value="s">{{ s }}</option>
+        </select>
+        <span class="pag-size-label">条</span>
       </div>
-
-      <div class="table-wrap">
-        <table v-if="!loading && books.length > 0">
-          <thead>
-            <tr>
-              <th class="col-emoji">Emoji</th>
-              <th class="col-title">书名</th>
-              <th class="col-author">作者</th>
-              <th class="col-genre">分类</th>
-              <th class="col-status">状态</th>
-              <th class="col-rating">评分</th>
-              <th class="col-actions">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="book in books" :key="book.id">
-              <td class="col-emoji">{{ book.emoji }}</td>
-              <td class="col-title">{{ book.title }}</td>
-              <td class="col-author">{{ book.author }}</td>
-              <td class="col-genre">
-                <span class="genre-tag" :style="{ background: genreColors[book.genre] || 'var(--c-other)' }">
-                  {{ book.genre }}
-                </span>
-              </td>
-              <td class="col-status">
-                <span class="status-tag" :class="book.status">{{ statusMap[book.status] }}</span>
-              </td>
-              <td class="col-rating">
-                <span v-if="book.rating > 0" class="stars">{{ '★'.repeat(book.rating) }}</span>
-                <span v-else class="no-rating">-</span>
-              </td>
-              <td class="col-actions">
-                <div class="action-group">
-                  <RouterLink :to="`/admin/books/${book.id}/edit`" class="action-btn edit">编辑</RouterLink>
-                  <button @click="confirmDelete(book)" class="action-btn delete">删除</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-else-if="loading" class="empty">加载中...</div>
-        <div v-else class="empty">没有找到匹配的书籍</div>
+      <div class="pag-nav">
+        <button class="pag-btn" :disabled="page <= 1" @click="goToPage(page - 1)">&lsaquo;</button>
+        <template v-for="p in pageNumbers" :key="p">
+          <span v-if="p === '...'" class="pag-ellipsis">...</span>
+          <button
+            v-else
+            class="pag-btn"
+            :class="{ active: p === page }"
+            @click="goToPage(p)"
+          >{{ p }}</button>
+        </template>
+        <button class="pag-btn" :disabled="page >= totalPages" @click="goToPage(page + 1)">&rsaquo;</button>
       </div>
+    </div>
+  </main>
 
-      <div v-if="total > 0" class="pagination">
-        <span class="pag-total">共 {{ total }} 条</span>
-        <div class="pag-size">
-          <span class="pag-size-label">每页</span>
-          <select v-model="pageSize" class="pag-size-select">
-            <option v-for="s in pageSizes" :key="s" :value="s">{{ s }}</option>
-          </select>
-          <span class="pag-size-label">条</span>
-        </div>
-        <div class="pag-nav">
-          <button class="pag-btn" :disabled="page <= 1" @click="goToPage(page - 1)">&lsaquo;</button>
-          <template v-for="p in pageNumbers" :key="p">
-            <span v-if="p === '...'" class="pag-ellipsis">...</span>
-            <button
-              v-else
-              class="pag-btn"
-              :class="{ active: p === page }"
-              @click="goToPage(p)"
-            >{{ p }}</button>
-          </template>
-          <button class="pag-btn" :disabled="page >= totalPages" @click="goToPage(page + 1)">&rsaquo;</button>
-        </div>
-      </div>
-    </main>
-
-    <Teleport to="body">
-      <div v-if="deleteTarget" class="confirm-overlay" @click.self="deleteTarget = null">
-        <div class="confirm-card">
-          <p>确定删除《{{ deleteTarget.title }}》吗？</p>
-          <p class="confirm-sub">此操作不可撤销</p>
-          <div class="confirm-actions">
-            <button @click="deleteTarget = null" class="confirm-cancel">取消</button>
-            <button @click="doDelete" :disabled="deleting" class="confirm-ok">
-              {{ deleting ? '删除中...' : '确认删除' }}
-            </button>
-          </div>
+  <Teleport to="body">
+    <div v-if="deleteTarget" class="confirm-overlay" @click.self="deleteTarget = null">
+      <div class="confirm-card">
+        <p>确定删除《{{ deleteTarget.title }}》吗？</p>
+        <p class="confirm-sub">此操作不可撤销</p>
+        <div class="confirm-actions">
+          <button @click="deleteTarget = null" class="confirm-cancel">取消</button>
+          <button @click="doDelete" :disabled="deleting" class="confirm-ok">
+            {{ deleting ? '删除中...' : '确认删除' }}
+          </button>
         </div>
       </div>
-    </Teleport>
-  </div>
+    </div>
+  </Teleport>
 </template>
 
 <script lang="ts">
@@ -264,65 +246,6 @@ const genreColors: Record<string, string> = {
 </script>
 
 <style scoped>
-.admin-page {
-  min-height: 100vh;
-}
-
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.admin-header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.admin-header-left h1 {
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: 3px;
-  color: var(--text);
-}
-
-.admin-badge {
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  padding: 2px 8px;
-  border-radius: 2px;
-}
-
-.admin-nav {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.nav-link {
-  font-size: 13px;
-  color: var(--text2);
-  text-decoration: none;
-  cursor: pointer;
-  background: none;
-  border: none;
-  transition: color .15s;
-}
-
-.nav-link:hover {
-  color: var(--accent);
-}
-
-.nav-link.logout:hover {
-  color: var(--danger);
-}
-
 .admin-main {
   max-width: 1400px;
   margin: 0 auto;
@@ -343,58 +266,6 @@ const genreColors: Record<string, string> = {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-}
-
-.search-input {
-  padding: 8px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  width: 220px;
-  transition: border-color .15s;
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-}
-
-.filter-select {
-  padding: 8px 28px 8px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8578' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  transition: border-color .15s;
-}
-
-.filter-select:focus {
-  border-color: var(--accent);
-}
-
-.add-btn {
-  padding: 8px 20px;
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  text-decoration: none;
-  transition: opacity .15s;
-  white-space: nowrap;
-}
-
-.add-btn:hover {
-  opacity: .9;
 }
 
 .table-wrap {
@@ -447,24 +318,6 @@ tbody td {
   font-size: 11px;
 }
 
-.action-btn {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--radius);
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  transition: opacity .15s;
-  white-space: nowrap;
-}
-
-.status-tag {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 2px;
-  font-size: 11px;
-}
-
 .status-tag.done { background: rgba(106,158,122,.15); color: #6a9e7a; }
 .status-tag.reading { background: rgba(92,122,158,.15); color: #5c7a9e; }
 .status-tag.wish { background: rgba(158,138,92,.15); color: #9e8a5c; }
@@ -482,14 +335,14 @@ tbody td {
 }
 
 .action-btn {
-  font-size: 12px;
-  padding: 4px 10px;
+  font-size: 11px;
+  padding: 2px 8px;
   border-radius: var(--radius);
   border: none;
   cursor: pointer;
   text-decoration: none;
   transition: opacity .15s;
-  margin-right: 6px;
+  white-space: nowrap;
 }
 
 .action-btn.edit {
@@ -667,11 +520,6 @@ tbody td {
 }
 
 @media (max-width: 600px) {
-  .admin-header {
-    padding: 16px 20px;
-    flex-direction: column;
-    gap: 12px;
-  }
   .admin-main {
     padding: 16px 20px;
   }

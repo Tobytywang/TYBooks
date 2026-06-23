@@ -15,22 +15,26 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
     },
     {
-      path: '/admin/dashboard',
-      name: 'admin',
-      component: () => import('../views/AdminView.vue'),
+      path: '/admin',
+      component: () => import('../views/AdminLayout.vue'),
       meta: { requiresAuth: true },
-    },
-    {
-      path: '/admin/books/new',
-      name: 'book-new',
-      component: () => import('../views/BookFormView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/admin/books/:id/edit',
-      name: 'book-edit',
-      component: () => import('../views/BookFormView.vue'),
-      meta: { requiresAuth: true },
+      children: [
+        {
+          path: 'dashboard',
+          name: 'admin',
+          component: () => import('../views/AdminView.vue'),
+        },
+        {
+          path: 'books/new',
+          name: 'book-new',
+          component: () => import('../views/BookFormView.vue'),
+        },
+        {
+          path: 'books/:id/edit',
+          name: 'book-edit',
+          component: () => import('../views/BookFormView.vue'),
+        },
+      ],
     },
   ],
 })
