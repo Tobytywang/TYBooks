@@ -78,6 +78,8 @@ body {
   transition: border-color .15s;
   font-family: inherit;
   line-height: 1.4;
+  height: 33px;
+  box-sizing: border-box;
 }
 .ctrl-input::placeholder { color: var(--text2); }
 .ctrl-input:focus { border-color: var(--accent); }
@@ -98,6 +100,9 @@ body {
   background-position: right 10px center;
   transition: border-color .15s;
   line-height: 1.4;
+  font-family: inherit;
+  height: 33px;
+  box-sizing: border-box;
 }
 .ctrl-select:focus { border-color: var(--accent); }
 
@@ -115,6 +120,9 @@ body {
   transition: all .15s;
   white-space: nowrap;
   line-height: 1.4;
+  font-family: inherit;
+  height: 33px;
+  box-sizing: border-box;
 }
 .ctrl-btn:hover {
   border-color: var(--accent);
@@ -135,6 +143,9 @@ body {
   transition: opacity .15s;
   white-space: nowrap;
   line-height: 1.4;
+  font-family: inherit;
+  height: 33px;
+  box-sizing: border-box;
 }
 .ctrl-btn-accent:hover { opacity: .9; }
 

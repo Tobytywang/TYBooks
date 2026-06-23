@@ -133,7 +133,9 @@ onMounted(async () => {
 <template>
   <main class="genre-main">
     <div class="admin-toolbar">
-      <span class="admin-toolbar-title">分类管理</span>
+      <div class="toolbar-left">
+        <span class="admin-toolbar-title">分类管理</span>
+      </div>
       <button @click="openCreate" class="ctrl-btn-accent">+ 新增分类</button>
     </div>
 

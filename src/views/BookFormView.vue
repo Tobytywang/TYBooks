@@ -93,7 +93,9 @@ onMounted(async () => {
 <template>
   <main class="form-main">
     <div class="admin-toolbar">
-      <span class="admin-toolbar-title">{{ pageTitle }}</span>
+      <div class="toolbar-left">
+        <span class="admin-toolbar-title">{{ pageTitle }}</span>
+      </div>
     </div>
 
     <div v-if="error" class="form-error">{{ error }}</div>
