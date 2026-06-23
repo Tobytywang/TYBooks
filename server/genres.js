@@ -22,7 +22,7 @@ router.post('/genres', authMiddleware, (req, res) => {
     const result = db.prepare('INSERT INTO genres (name, color, sort_order) VALUES (?, ?, ?)').run(name, color || 'var(--c-other)', sort_order || 0)
     const genre = db.prepare('SELECT * FROM genres WHERE id = ?').get(result.lastInsertRowid)
     res.json(genre)
-  } catch (e: any) {
+  } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: '分类名已存在' })
     throw e
   }
@@ -41,7 +41,7 @@ router.put('/genres/:id', authMiddleware, (req, res) => {
     )
     const genre = db.prepare('SELECT * FROM genres WHERE id = ?').get(req.params.id)
     res.json(genre)
-  } catch (e: any) {
+  } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(409).json({ error: '分类名已存在' })
     throw e
   }
