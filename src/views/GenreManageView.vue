@@ -132,8 +132,8 @@ onMounted(async () => {
 
 <template>
   <main class="genre-main">
-    <div class="toolbar">
-      <span class="toolbar-title">分类管理</span>
+    <div class="admin-toolbar">
+      <span class="admin-toolbar-title">分类管理</span>
       <button @click="openCreate" class="ctrl-btn-accent">+ 新增分类</button>
     </div>
 
@@ -230,23 +230,6 @@ onMounted(async () => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px 32px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.toolbar-title {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  color: var(--text2);
-  text-transform: uppercase;
 }
 
 .table-wrap {

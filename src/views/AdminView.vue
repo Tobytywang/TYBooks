@@ -119,7 +119,7 @@ onMounted(async () => {
 
 <template>
   <main class="admin-main">
-    <div class="toolbar">
+    <div class="admin-toolbar">
       <div class="toolbar-left">
         <input v-model="search" type="text" placeholder="搜索书名或作者" class="ctrl-input" style="width: 220px" />
         <select v-model="genreFilter" class="ctrl-select">
@@ -251,15 +251,6 @@ const genreColors: Record<string, string> = {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px 32px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
-  flex-wrap: wrap;
 }
 
 .toolbar-left {

@@ -49,6 +49,24 @@ body {
 
 .container { max-width: 1600px; margin: 0 auto; padding: 0 32px; }
 
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-height: 33px;
+}
+
+.admin-toolbar-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+
 .ctrl-input {
   padding: 8px 14px;
   border-radius: var(--radius);

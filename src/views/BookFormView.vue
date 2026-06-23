@@ -92,8 +92,8 @@ onMounted(async () => {
 
 <template>
   <main class="form-main">
-    <div class="toolbar">
-      <span class="toolbar-title">{{ pageTitle }}</span>
+    <div class="admin-toolbar">
+      <span class="admin-toolbar-title">{{ pageTitle }}</span>
     </div>
 
     <div v-if="error" class="form-error">{{ error }}</div>
@@ -113,23 +113,6 @@ onMounted(async () => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px 32px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.toolbar-title {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  color: var(--text2);
-  text-transform: uppercase;
 }
 
 .form-error {
