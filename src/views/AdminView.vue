@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { fetchBooksPaged, fetchBooks, deleteBook } from '../api/books'
+import { fetchGenres } from '../api/genres'
 import type { Book, StatusFilter, PaginatedBooks } from '../types/book'
 
 const router = useRouter()
@@ -61,8 +62,8 @@ async function loadBooks() {
 }
 
 async function loadGenres() {
-  const all = await fetchBooks()
-  genres.value = Array.from(new Set(all.map(b => b.genre))).sort()
+  const list = await fetchGenres()
+  genres.value = list.map(g => g.name)
 }
 
 function confirmDelete(book: Book) {

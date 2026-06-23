@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { fetchBook, createBook, updateBook } from '../api/books'
+import { fetchGenres } from '../api/genres'
 import BookForm from '../components/BookForm.vue'
 import type { Book, BookCreate } from '../types/book'
 
@@ -12,6 +13,7 @@ const { logout, verify } = useAuth()
 
 const isEdit = computed(() => !!route.params.id)
 const pageTitle = computed(() => isEdit.value ? '编辑书籍' : '新增书籍')
+const genreNames = ref<string[]>([])
 
 const existingBook = ref<Book | undefined>()
 const form = ref<BookCreate>({
@@ -84,21 +86,20 @@ onMounted(async () => {
   if (isEdit.value) {
     loadBook()
   }
+  fetchGenres().then(list => { genreNames.value = list.map(g => g.name) })
 })
 </script>
 
 <template>
   <main class="form-main">
     <div class="toolbar">
-      <div class="toolbar-left">
-        <RouterLink to="/admin/dashboard" class="ctrl-btn">返回管理</RouterLink>
-        <span class="toolbar-title">{{ pageTitle }}</span>
-      </div>
+      <span class="toolbar-title">{{ pageTitle }}</span>
     </div>
 
     <div v-if="error" class="form-error">{{ error }}</div>
     <BookForm
       :book="existingBook"
+      :genres="genreNames"
       v-model:form="form"
       @submit="onSubmit"
       @cancel="onCancel"
@@ -120,13 +121,6 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 20px;
   gap: 16px;
-  flex-wrap: wrap;
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 10px;
-  align-items: center;
   flex-wrap: wrap;
 }
 

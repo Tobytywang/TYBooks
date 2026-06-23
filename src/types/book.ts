@@ -40,3 +40,10 @@ export interface PaginatedBooks {
   page: number
   pageSize: number
 }
+
+export interface Genre {
+  id: number
+  name: string
+  color: string
+  sort_order: number
+}

@@ -34,6 +34,11 @@ const router = createRouter({
           name: 'book-edit',
           component: () => import('../views/BookFormView.vue'),
         },
+        {
+          path: 'genres',
+          name: 'genres',
+          component: () => import('../views/GenreManageView.vue'),
+        },
       ],
     },
   ],

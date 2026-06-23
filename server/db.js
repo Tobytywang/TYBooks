@@ -34,11 +34,41 @@ db.exec(`
   )
 `)
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS genres (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    color TEXT NOT NULL DEFAULT 'var(--c-other)',
+    sort_order INTEGER NOT NULL DEFAULT 0
+  )
+`)
+
 const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get()
 if (userCount.c === 0) {
   const hash = bcrypt.hashSync('admin123', 12)
   db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hash)
   console.log('Created default admin user (username: admin, password: admin123)')
+}
+
+const genreCount = db.prepare('SELECT COUNT(*) as c FROM genres').get()
+if (genreCount.c === 0) {
+  const genreSeed = [
+    { name: '小说', color: 'var(--c-novel)', sort_order: 1 },
+    { name: '技术', color: 'var(--c-tech)', sort_order: 2 },
+    { name: '历史', color: 'var(--c-history)', sort_order: 3 },
+    { name: '哲学', color: 'var(--c-philosophy)', sort_order: 4 },
+    { name: '科学', color: 'var(--c-science)', sort_order: 5 },
+    { name: '商业', color: 'var(--c-business)', sort_order: 6 },
+    { name: '非虚构', color: 'var(--c-nonfic)', sort_order: 7 },
+    { name: '文学', color: 'var(--c-literature)', sort_order: 8 },
+    { name: '艺术', color: 'var(--c-art)', sort_order: 9 },
+    { name: '传记', color: 'var(--c-biography)', sort_order: 10 },
+    { name: '其他', color: 'var(--c-other)', sort_order: 99 },
+  ]
+  const insertGenre = db.prepare('INSERT INTO genres (name, color, sort_order) VALUES (@name, @color, @sort_order)')
+  const insertGenres = db.transaction((rows) => { for (const row of rows) insertGenre.run(row) })
+  insertGenres(genreSeed)
+  console.log(`Seeded ${genreSeed.length} genres`)
 }
 
 const count = db.prepare('SELECT COUNT(*) as c FROM books').get()
