@@ -118,3 +118,68 @@ deploy/
 2. `grep -r "sqlite" server/` 无结果
 3. `ls data/` 不存在
 4. 应用功能完整可用
+
+---
+
+## 阶段五：镜像发布（手动流程）
+
+### 前提
+
+- 本地已成功 `docker build -t tybooks .`
+- 有 GitHub 仓库的写权限
+- 服务器为内网隔离，无法访问外网镜像仓库
+
+### 操作步骤
+
+#### 1. 本地构建镜像
+
+```bash
+docker build -t tybooks .
+```
+
+#### 2. 导出镜像为压缩文件
+
+```bash
+docker save tybooks | gzip > tybooks-v1.0.0.tar.gz
+```
+
+#### 3. 推送代码到 GitHub
+
+```bash
+git tag v1.0.0
+git push origin master --tags
+```
+
+#### 4. 在 GitHub 上创建 Release
+
+1. 打开 `https://github.com/<用户名>/TYBooks/releases/new`
+2. Tag 选择 `v1.0.0`
+3. Title 填 `v1.0.0`
+4. 将 `tybooks-v1.0.0.tar.gz` 拖入 Assets 上传
+5. 点击 Publish release
+
+#### 5. 服务器加载镜像
+
+在服务器上（通过内网跳板机等方式将 tar.gz 传到服务器）：
+
+```bash
+# 传输文件到服务器（从可访问 GitHub 的机器）
+scp tybooks-v1.0.0.tar.gz user@<服务器IP>:/tmp/
+
+# 在服务器上加载镜像
+docker load < /tmp/tybooks-v1.0.0.tar.gz
+
+# 验证镜像
+docker images tybooks
+```
+
+#### 6. 服务器启动应用
+
+```bash
+# 参考 deploy/ 目录中的 docker-compose.yml 和初始化脚本
+# 详见阶段三部署流程
+```
+
+### 后续版本更新
+
+重复步骤 1-5，更换版本号即可（如 `v1.1.0`）。
