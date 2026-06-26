@@ -12,7 +12,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const genres = props.genres || ['小说', '技术', '历史', '哲学', '科学', '商业', '非虚构', '文学', '艺术', '传记', '其他']
+const genres = computed(() => props.genres ?? [])
 const statuses: { value: string; label: string }[] = [
   { value: 'wish', label: '想读' },
   { value: 'tobuy', label: '待购' },
