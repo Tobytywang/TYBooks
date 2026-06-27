@@ -8,7 +8,8 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\""
+    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "docker:run": "npm run build && docker build -t tybooks . && docker stop tybooks-app 2>/dev/null; docker rm tybooks-app 2>/dev/null; docker image prune -f -q && docker run -d --name tybooks-app -p 8080:8080 tybooks"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

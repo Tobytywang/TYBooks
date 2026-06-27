@@ -1,14 +1,15 @@
 import pg from 'pg'
 import bcrypt from 'bcryptjs'
+import { wrapPool } from './middleware/queryLog.js'
 
-const pool = new pg.Pool({
+const pool = wrapPool(new pg.Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://tybooks:tybooks@localhost:5432/tybooks',
-})
+}))
 
 const readOnlyUrl = process.env.DATABASE_URL_READONLY || process.env.DATABASE_URL || 'postgresql://tybooks:tybooks@localhost:5432/tybooks'
-const poolRead = new pg.Pool({
+const poolRead = wrapPool(new pg.Pool({
   connectionString: readOnlyUrl,
-})
+}))
 
 async function initDB() {
   await pool.query(`

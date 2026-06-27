@@ -22,6 +22,7 @@ function handleLogout() {
       <nav class="admin-nav">
         <RouterLink to="/admin/dashboard" class="ctrl-btn" :class="{ active: route.path === '/admin/dashboard' || route.path.startsWith('/admin/books') }">书籍</RouterLink>
         <RouterLink to="/admin/genres" class="ctrl-btn" :class="{ active: route.path === '/admin/genres' }">分类</RouterLink>
+        <RouterLink to="/admin/status" class="ctrl-btn" :class="{ active: route.path === '/admin/status' }">状态</RouterLink>
         <RouterLink to="/" class="ctrl-btn">返回书架</RouterLink>
         <button @click="handleLogout" class="ctrl-btn logout">退出登录</button>
       </nav>

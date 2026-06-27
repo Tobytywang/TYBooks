@@ -39,6 +39,11 @@ const router = createRouter({
           name: 'genres',
           component: () => import('../views/GenreManageView.vue'),
         },
+        {
+          path: 'status',
+          name: 'status',
+          component: () => import('../views/StatusView.vue'),
+        },
       ],
     },
   ],

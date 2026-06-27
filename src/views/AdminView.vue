@@ -28,11 +28,13 @@ const pageSizes = [10, 15, 20, 50, 100]
 
 function pickBestPageSize(): number {
   const vh = window.innerHeight
+  const headerH = 62
+  const mainPadding = 48
   const toolbarH = 50
-  const headerH = 40
-  const pagH = 40
-  const rowH = 36
-  const available = vh - toolbarH - headerH - pagH
+  const theadH = 30
+  const pagH = 46
+  const rowH = 35
+  const available = vh - headerH - mainPadding - toolbarH - theadH - pagH
   const ideal = Math.max(5, Math.floor(available / rowH))
   return pageSizes.reduce((best, s) => s <= ideal ? s : best, pageSizes[0])
 }

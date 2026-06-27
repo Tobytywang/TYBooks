@@ -5,7 +5,10 @@ import { dirname, join } from 'path'
 import booksRouter from './books.js'
 import authRouter from './auth.js'
 import genresRouter from './genres.js'
+import statusRouter from './status.js'
 import { initDB } from './db.js'
+import { wrapPool } from './middleware/queryLog.js'
+import './middleware/serverLog.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -17,6 +20,7 @@ app.use(express.json())
 app.use('/api', authRouter)
 app.use('/api', genresRouter)
 app.use('/api', booksRouter)
+app.use('/api', statusRouter)
 
 app.use(express.static(join(__dirname, '..', 'dist')))
 app.get('*', (_req, res) => {
