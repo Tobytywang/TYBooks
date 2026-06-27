@@ -55,8 +55,11 @@ const pageNumbers = computed(() => {
   return pages
 })
 
+const dbError = ref('')
+
 async function loadBooks() {
   loading.value = true
+  dbError.value = ''
   try {
     const result: PaginatedBooks = await fetchBooksPaged({
       search: search.value || undefined,
@@ -67,14 +70,20 @@ async function loadBooks() {
     })
     books.value = result.data
     total.value = result.total
+  } catch {
+    dbError.value = '数据库连接异常，请检查服务状态'
   } finally {
     loading.value = false
   }
 }
 
 async function loadGenres() {
-  const list = await fetchGenres()
-  genres.value = list.map(g => g.name)
+  try {
+    const list = await fetchGenres()
+    genres.value = list.map(g => g.name)
+  } catch {
+    dbError.value = '数据库连接异常，请检查服务状态'
+  }
 }
 
 function confirmDelete(book: Book) {
@@ -131,6 +140,7 @@ onMounted(async () => {
 
 <template>
   <main class="admin-main">
+    <div v-if="dbError" class="db-error">{{ dbError }}</div>
     <div class="admin-toolbar">
       <div class="toolbar-left">
         <input v-model="search" type="text" placeholder="搜索书名或作者" class="ctrl-input" style="width: 220px" />
@@ -259,6 +269,16 @@ const genreColors: Record<string, string> = {
 </script>
 
 <style scoped>
+.db-error {
+  text-align: center;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: var(--danger);
+  background: rgba(196,90,90,.1);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
 .admin-main {
   max-width: 1400px;
   margin: 0 auto;

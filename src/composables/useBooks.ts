@@ -41,20 +41,30 @@ const groupedBooks = computed(() => {
   return groups
 })
 
+const dbError = ref('')
+
 async function loadBooks() {
   loading.value = true
+  dbError.value = ''
   try {
     books.value = await fetchBooks()
+  } catch {
+    dbError.value = '数据库连接异常，请检查服务状态'
   } finally {
     loading.value = false
   }
 }
 
 async function loadStats() {
-  stats.value = await fetchStats()
+  try {
+    stats.value = await fetchStats()
+  } catch {
+    dbError.value = '数据库连接异常，请检查服务状态'
+  }
 }
 
 async function refresh() {
+  dbError.value = ''
   await Promise.all([loadBooks(), loadStats()])
 }
 
@@ -63,6 +73,7 @@ export function useBooks() {
     books,
     stats,
     loading,
+    dbError,
     search,
     genreFilter,
     statusFilter,
