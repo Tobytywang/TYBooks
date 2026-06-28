@@ -2,15 +2,11 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: tybooks
-      POSTGRES_USER: tybooks
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     command: >
       postgres
-      -c wal_level=replica
-      -c max_wal_senders=3
       -c hot_standby=on
+    environment:
+      PGUSER: tybooks
     volumes:
       - pg-data:/var/lib/postgresql/data
     ports:
@@ -25,8 +21,8 @@ services:
     image: tybooks
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://tybooks:${POSTGRES_PASSWORD}@postgres:5432/tybooks
-      DATABASE_URL_READONLY: postgresql://tybooks:${POSTGRES_PASSWORD}@${SERVER_B_IP}:5432/tybooks
+      DATABASE_URL: postgresql://tybooks:${POSTGRES_PASSWORD}@${PRIMARY_IP}:5432/tybooks
+      DATABASE_URL_READONLY: postgresql://tybooks:${POSTGRES_PASSWORD}@postgres:5432/tybooks
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8080:8080"

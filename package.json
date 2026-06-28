@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
-    "docker:run": "npm run build && docker build -t tybooks . && docker stop tybooks-app 2>/dev/null; docker rm tybooks-app 2>/dev/null; docker image prune -f -q && docker run -d --name tybooks-app -p 8080:8080 tybooks"
+    "docker:run": "npm run build && docker tag tybooks:latest tybooks:old 2>/dev/null; docker build -t tybooks:latest . && docker stop tybooks-app 2>/dev/null; docker rm tybooks-app 2>/dev/null; docker run -d --name tybooks-app -p 8080:8080 tybooks:latest && docker rmi tybooks:old 2>/dev/null; true"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
