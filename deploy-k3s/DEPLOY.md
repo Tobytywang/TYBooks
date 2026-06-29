@@ -9,15 +9,26 @@ mkdir ~/.kube && sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config && chown $USER
 ## 2. 构建镜像并导入
 ```bash
 npm run build
+buildah build -t tybooks:latest .
+buildah push tybooks:latest oci-archive:/tmp/tybooks.tar
+sudo k3s ctr images import /tmp/tybooks.tar
+```
+
+## 2. 构建镜像并导入
+
+```bash
+npm run build
 docker build -t tybooks:latest .
 sudo k3s ctr images import <(docker save tybooks:latest)
 ```
 
 ## 3. 修改 Secret
+
 编辑 `postgres/postgres.yaml` 和 `app/app.yaml` 中的 `CHANGE_ME` 为实际密码
 编辑 `ingress.yaml` 中的域名为实际域名
 
 ## 4. 部署
+
 ```bash
 kubectl apply -f namespace.yaml
 kubectl apply -f postgres/
@@ -27,6 +38,7 @@ kubectl apply -f ingress.yaml
 ```
 
 ## 5. 验证
+
 ```bash
 kubectl get pods -n tybooks
 kubectl get ingress -n tybooks
