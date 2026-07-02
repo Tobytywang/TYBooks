@@ -1,11 +1,12 @@
-FROM node:20-slim AS builder
+ARG REGISTRY=docker.io/library
+FROM ${REGISTRY}/node:20-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:20-slim
+FROM ${REGISTRY}/node:20-slim
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev

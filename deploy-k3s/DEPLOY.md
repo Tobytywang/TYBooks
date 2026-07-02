@@ -9,9 +9,10 @@ mkdir ~/.kube && sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config && chown $USER
 ## 2. 构建镜像并导入
 ```bash
 npm run build
-buildah build -t tybooks:latest .
-buildah push tybooks:latest oci-archive:/tmp/tybooks.tar
-sudo k3s ctr images import /tmp/tybooks.tar
+podman build --build-arg REGISTRY=docker.m.daocloud.io/library -t tybooks:latest .
+podman save tybooks:latest -o /tmp/tybooks.tar
+scp /tmp/tybooks.tar user@server:/tmp/
+ssh user@server "sudo k3s ctr images import /tmp/tybooks.tar"
 ```
 
 ## 2. 构建镜像并导入
