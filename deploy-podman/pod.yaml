@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tybooks
+spec:
+  containers:
+    - name: postgres
+      image: docker.m.daocloud.io/library/postgres:16-alpine
+      env:
+        - name: POSTGRES_DB
+          value: tybooks
+        - name: POSTGRES_USER
+          value: tybooks
+        - name: POSTGRES_PASSWORD
+          value: CHANGE_ME
+      volumeMounts:
+        - name: pg-data
+          mountPath: /var/lib/postgresql/data
+      readinessProbe:
+        exec:
+          command:
+            - pg_isready
+            - -U
+            - tybooks
+        initialDelaySeconds: 5
+        periodSeconds: 5
+
+    - name: app
+      image: tybooks:latest
+      env:
+        - name: DATABASE_URL
+          value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
+        - name: DATABASE_URL_READONLY
+          value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+
+  volumes:
+    - name: pg-data
+      hostPath:
+        path: ./pg-data
+        type: DirectoryOrCreate
