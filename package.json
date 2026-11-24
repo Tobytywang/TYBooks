@@ -11,8 +11,8 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "docker:build": "docker image inspect postgres:16-alpine >/dev/null 2>&1 || { echo 'Error: postgres:16-alpine image not found. Run: docker pull postgres:16-alpine'; exit 1; } && npm run build && docker build -t tybooks:latest . && docker save tybooks:latest -o tybooks.tar && docker save postgres:16-alpine -o postgres.tar",
     "docker:run": "docker stop tybooks-app 2>/dev/null; docker rm tybooks-app 2>/dev/null; docker run -d --name tybooks-app -p 8080:8080 tybooks:latest; true",
-    "podman:build": "podman image inspect docker.m.daocloud.io/library/postgres:16-alpine >/dev/null 2>&1 || { echo 'Error: postgres:16-alpine image not found. Run: podman pull docker.m.daocloud.io/library/postgres:16-alpine'; exit 1; } && npm run build && podman build --build-arg REGISTRY=docker.m.daocloud.io/library -t tybooks:latest . && podman save tybooks:latest -o tybooks.tar && podman save docker.m.daocloud.io/library/postgres:16-alpine -o postgres.tar",
-    "podman:run": "podman stop tybooks-app 2>/dev/null; podman rm tybooks-app 2>/dev/null; podman run -d --name tybooks-app -p 8080:8080 tybooks:latest; true"
+    "podman:build": "bash deploy-k3s/build.sh",
+    "podman:run": "podman stop tybooks-app 2>/dev/null; podman rm tybooks-app 2>/dev/null; podman run -d --name tybooks-app -p 8080:8080 docker.io/library/tybooks:latest; true"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
