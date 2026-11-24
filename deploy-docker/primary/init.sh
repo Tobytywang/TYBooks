@@ -1,11 +1,26 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/../.env"
+if [ -f "${ENV_FILE}" ]; then
+  echo "加载环境变量: ${ENV_FILE}"
+  set -a
+  source "${ENV_FILE}"
+  set +a
+fi
+
 echo "=== TYBooks Primary 初始化 ==="
 
 if [ -z "${POSTGRES_PASSWORD}" ]; then
   echo "错误：请先设置环境变量 POSTGRES_PASSWORD"
-  echo "可以从 deploy/.env 文件中加载：source ../.env"
+  echo "可以从 deploy-docker/.env 文件中加载：source ../.env"
+  exit 1
+fi
+
+if [ -n "${STANDBY_IPS}" ] && [ -z "${REPLICATOR_PASSWORD}" ]; then
+  echo "错误：多节点模式下请先设置环境变量 REPLICATOR_PASSWORD"
+  echo "可以从 deploy-docker/.env 文件中加载：source ../.env"
   exit 1
 fi
 
