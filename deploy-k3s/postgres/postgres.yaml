@@ -38,7 +38,8 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: docker.io/library/postgres:16-alpine
+          imagePullPolicy: Never
           ports:
             - containerPort: 5432
           envFrom:
@@ -46,6 +47,13 @@ spec:
                 name: postgres-config
             - secretRef:
                 name: postgres-secret
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: "1"
           command:
             - postgres
             - -c
@@ -67,6 +75,16 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 5
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - tybooks
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
       volumes:
         - name: postgres-data
           persistentVolumeClaim:

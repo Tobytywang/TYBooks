@@ -15,13 +15,20 @@ spec:
     spec:
       containers:
         - name: tybooks-app
-          image: tybooks:latest
+          image: docker.io/library/tybooks:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
           envFrom:
             - secretRef:
                 name: app-secret
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 500m
           readinessProbe:
             httpGet:
               path: /api/auth/check
@@ -41,8 +48,10 @@ metadata:
   name: tybooks-app
   namespace: tybooks
 spec:
+  type: NodePort
   selector:
     app: tybooks-app
   ports:
     - port: 8080
       targetPort: 8080
+      nodePort: 30080
