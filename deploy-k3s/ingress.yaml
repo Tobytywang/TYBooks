@@ -3,7 +3,13 @@ kind: Ingress
 metadata:
   name: tybooks-ingress
   namespace: tybooks
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
+  tls:
+    - hosts:
+        - tybooks.example.com
+      secretName: tybooks-tls
   rules:
     - host: tybooks.example.com
       http:

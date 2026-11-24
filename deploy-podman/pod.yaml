@@ -24,6 +24,19 @@ spec:
             - tybooks
         initialDelaySeconds: 5
         periodSeconds: 5
+      livenessProbe:
+        exec:
+          command:
+            - pg_isready
+            - -U
+            - tybooks
+        initialDelaySeconds: 10
+        periodSeconds: 30
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          memory: 256Mi
 
     - name: app
       image: tybooks:latest
@@ -32,12 +45,31 @@ spec:
           value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
         - name: DATABASE_URL_READONLY
           value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
+        - name: JWT_SECRET
+          value: CHANGE_ME
       ports:
         - containerPort: 8080
           hostPort: 8080
+      readinessProbe:
+        httpGet:
+          path: /api/auth/check
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 10
+      livenessProbe:
+        httpGet:
+          path: /api/auth/check
+          port: 8080
+        initialDelaySeconds: 15
+        periodSeconds: 30
+      resources:
+        limits:
+          memory: 256Mi
+        requests:
+          memory: 128Mi
 
   volumes:
     - name: pg-data
       hostPath:
-        path: ./pg-data
+        path: /var/lib/tybooks/pg-data
         type: DirectoryOrCreate
