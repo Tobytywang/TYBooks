@@ -1,185 +1,63 @@
-# TYBooks PostgreSQL 迁移 & Docker 部署计划
+# TYBooks 架构说明
 
-## 概述
+> 本文描述当前架构、数据初始化与部署方案。具体操作步骤见各部署目录下的 `DEPLOY.md`。
 
-将数据存储从 SQLite 迁移到 PostgreSQL，支持双服务器部署（主从复制 + 读写分离），容器化打包。
+## 技术栈
 
-### 关键参数
+- 前端：Vue 3 + Vite + TypeScript，Vue Router
+- 后端：Express 4 + node-postgres（pg）
+- 数据库：PostgreSQL 16
+- 运行时：Node.js 20（容器镜像 `node:20-slim`）
+- 服务端口：8080
 
-| 参数 | 值 |
-|---|---|
-| PG 版本 | 16 |
-| Web 端口 | 8080 |
-| PG 端口 | 5432 |
-| 密码 | 占位符，部署时替换 |
-| Nginx | 已有配置，不生成 |
-| 故障切换 | 手动（pg_ctl promote） |
-| 读写分离 | 应用层（pool 写主库 / poolRead 读从库） |
+## 数据模型
 
----
+`server/db.js` 在启动时自动建表：
 
-## 阶段一：代码改造（SQLite → PostgreSQL）
+| 表 | 说明 |
+| --- | --- |
+| books | 书籍（emoji、标题、作者、分类、状态、评分、书评、标签） |
+| users | 登录用户（密码为 bcrypt 哈希） |
+| genres | 分类（名称、颜色、排序） |
 
-### 改动清单
+## 数据库连接
 
-| # | 文件 | 改动 |
-|---|---|---|
-| 1 | `package.json` | 移除 `better-sqlite3`/`@types/better-sqlite3`，添加 `pg`/`@types/pg` |
-| 2 | `.gitignore` | 加入 `.env` |
-| 3 | `.env`（新建） | `DATABASE_URL=postgresql://tybooks:tybooks@localhost:5432/tybooks` |
-| 4 | `server/db.js` | 重写：`pg.Pool`，`DATABASE_URL`/`DATABASE_URL_READONLY`，`SERIAL PRIMARY KEY`，`ON CONFLICT DO NOTHING`，导出 `pool` + `poolRead` + `initDB()` |
-| 5 | `server/books.js` | 18 处：`async`，`$1`，`poolRead` 读 / `pool` 写，`RETURNING id` |
-| 6 | `server/genres.js` | 10 处：同上，`e.code === '23505'` |
-| 7 | `server/auth.js` | 1 处：异步 |
-| 8 | `server/index.js` | 静态文件托管 + SPA fallback，去掉 `cors()`，端口改为 8080 |
+| 变量 | 用途 |
+| --- | --- |
+| `DATABASE_URL` | 写库连接 |
+| `DATABASE_URL_READONLY` | 读库连接；未设置时回退到 `DATABASE_URL` |
+| `JWT_SECRET` | JWT 签名密钥；未设置时使用代码内默认值，生产必须显式配置 |
 
-### 验证步骤
+应用启动时最多重试 10 次数据库连接，全部失败后退出。
 
-1. 本地 Docker 启动 PostgreSQL：
-   ```bash
-   docker run -d --name tybooks-pg \
-     -e POSTGRES_DB=tybooks \
-     -e POSTGRES_USER=tybooks \
-     -e POSTGRES_PASSWORD=tybooks \
-     -p 5432:5432 \
-     postgres:16-alpine
-   ```
-2. 配置 `.env`：`DATABASE_URL=postgresql://tybooks:tybooks@localhost:5432/tybooks`
-3. `npm run build` 构建前端
-4. `node server/index.js` 启动服务
-5. 访问 `http://localhost:8080`，验证：
-   - 页面正常显示
-   - 书籍列表可加载
-   - 新增/编辑/删除书籍正常
-   - 分类管理正常
-   - 登录/登出正常
+## 初始化数据
 
----
+首次启动且对应表为空时自动写入：
 
-## 阶段二：Docker 镜像
+- 默认账号 `admin / admin123`，上线前必须修改
+- 11 个分类
+- 约 50 本示例书籍
 
-### 改动清单
+## 部署方案
 
-| # | 文件 | 内容 |
-|---|---|---|
-| 1 | `Dockerfile` | 多阶段构建：builder（`npm ci` + `npm run build`）→ runtime（`npm ci --omit=dev` + `server/` + `dist/`），`node:20-slim`，暴露 8080 |
-| 2 | `.dockerignore` | 排除 `node_modules`、`data`、`.git`、`.env`、`dist` |
+| 方案 | 目录 | 适用场景 |
+| --- | --- | --- |
+| Docker Compose | `deploy-docker/` | 单机或 PostgreSQL 主从复制多节点 |
+| Podman Pod | `deploy-podman/` | 单机本地运行 |
+| K3s | `deploy-k3s/` | Kubernetes 生产部署（NodePort + 现有 Nginx） |
+| Jenkins | `deploy-jenkins/` | CI/CD 基础设施，与业务 namespace 隔离 |
 
-### 验证步骤
+每个目录下的 `DEPLOY.md` 是对应的操作手册。
 
-1. `docker build -t tybooks .`
-2. `docker run -d --name tybooks-test -p 8080:8080 -e DATABASE_URL=postgresql://tybooks:tybooks@host.docker.internal:5432/tybooks tybooks`
-3. 访问 `http://localhost:8080`，验证页面和 API 正常
+## 构建入口
 
----
+| 命令 | 说明 |
+| --- | --- |
+| `npm run podman:build` | 调用 `deploy-k3s/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE` 覆盖 |
+| `npm run docker:build` | 调用 `deploy-docker/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE` 覆盖 |
 
-## 阶段三：部署配置
+## 迁移历史
 
-### 文件清单
-
-```
-deploy/
-├── .env.example                # 环境变量模板
-├── server-a/
-│   ├── docker-compose.yml      # PG 主库 + App
-│   ├── pg-primary.conf         # 主库 PG 配置
-│   └── init-primary.sh         # 创建复制用户 + pg_hba + 重载
-└── server-b/
-    ├── docker-compose.yml      # PG 从库 + App
-    ├── pg-standby.conf         # 从库 PG 配置
-    └── setup-standby.sh        # pg_basebackup + standby + 启动 + 验证
-```
-
-### 部署流程
-
-1. **服务器A**：`docker compose up -d` → 启动主库 + App
-2. **服务器A**：`bash init-primary.sh` → 创建复制用户、配置 pg_hba、重载 PG
-3. **服务器B**：`bash setup-standby.sh` → 从主库 pg_basebackup、配置 standby、启动从库 + App
-4. **验证**：
-   - 主库：`SELECT * FROM pg_stat_replication;`（应看到 replicator 连接）
-   - 从库：`SELECT pg_is_in_recovery();`（应返回 `t`）
-   - 两台 App 均可访问 `http://<IP>:8080`
-   - 主库写入数据，从库可读到
-
----
-
-## 阶段四：清理
-
-### 操作清单
-
-| # | 操作 |
-|---|---|
-| 1 | 删除 `data/` 目录（SQLite 数据不再需要） |
-| 2 | 确认 `package.json` 中无 `better-sqlite3` 残留 |
-
-### 验证步骤
-
-1. `grep -r "better-sqlite3" server/` 无结果
-2. `grep -r "sqlite" server/` 无结果
-3. `ls data/` 不存在
-4. 应用功能完整可用
-
----
-
-## 阶段五：镜像发布（手动流程）
-
-### 前提
-
-- 本地已成功 `docker build -t tybooks .`
-- 有 GitHub 仓库的写权限
-- 服务器为内网隔离，无法访问外网镜像仓库
-
-### 操作步骤
-
-#### 1. 本地构建镜像
-
-```bash
-docker build -t tybooks .
-```
-
-#### 2. 导出镜像为压缩文件
-
-```bash
-docker save tybooks | gzip > tybooks-v1.0.0.tar.gz
-```
-
-#### 3. 推送代码到 GitHub
-
-```bash
-git tag v1.0.0
-git push origin master --tags
-```
-
-#### 4. 在 GitHub 上创建 Release
-
-1. 打开 `https://github.com/<用户名>/TYBooks/releases/new`
-2. Tag 选择 `v1.0.0`
-3. Title 填 `v1.0.0`
-4. 将 `tybooks-v1.0.0.tar.gz` 拖入 Assets 上传
-5. 点击 Publish release
-
-#### 5. 服务器加载镜像
-
-在服务器上（通过内网跳板机等方式将 tar.gz 传到服务器）：
-
-```bash
-# 传输文件到服务器（从可访问 GitHub 的机器）
-scp tybooks-v1.0.0.tar.gz user@<服务器IP>:/tmp/
-
-# 在服务器上加载镜像
-docker load < /tmp/tybooks-v1.0.0.tar.gz
-
-# 验证镜像
-docker images tybooks
-```
-
-#### 6. 服务器启动应用
-
-```bash
-# 参考 deploy/ 目录中的 docker-compose.yml 和初始化脚本
-# 详见阶段三部署流程
-```
-
-### 后续版本更新
-
-重复步骤 1-5，更换版本号即可（如 `v1.1.0`）。
+- 数据存储已由 SQLite 迁移到 PostgreSQL 16，后端使用 `pg.Pool` 并支持读写分离
+- 原 `deploy/` 目录已重命名为 `deploy-docker/`
+- K3s 部署方案已由 Traefik + cert-manager 调整为 NodePort + 现有 Nginx
