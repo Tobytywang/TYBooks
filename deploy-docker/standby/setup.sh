@@ -2,13 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/../.env"
-if [ -f "${ENV_FILE}" ]; then
-  echo "加载环境变量: ${ENV_FILE}"
-  set -a
-  source "${ENV_FILE}"
-  set +a
-fi
+source "${SCRIPT_DIR}/../env.sh"
 
 echo "=== TYBooks Standby 初始化 ==="
 
