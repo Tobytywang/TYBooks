@@ -6,9 +6,10 @@
 
 ### 所需软件
 
-| 软件   | 安装位置 | 说明           |
-| ------ | -------- | -------------- |
-| Podman | 本地     | 运行容器和 Pod |
+| 软件        | 安装位置 | 说明           |
+| ----------- | -------- | -------------- |
+| Podman      | 本地     | 运行容器和 Pod |
+| Node.js 20+ | 本地     | 构建前端       |
 
 ### 暴露端口
 
@@ -28,11 +29,11 @@
 
 | 文件         | 说明                                                                   |
 | ------------ | ---------------------------------------------------------------------- |
-| `pod.yaml` | Pod 定义（容器、环境变量、卷），需替换 CHANGE_ME 为实际密码（共 3 处） |
+| `pod.yaml` | Pod 定义（容器、环境变量、卷），需替换 CHANGE_ME 为实际值（共 4 处） |
 
 ### 注意事项
 
-- Podman mirror 可能不生效，构建时需指定 `--build-arg REGISTRY=镜像源`
+- 构建统一走 `npm run podman:build`，脚本默认使用 daocloud 镜像源，可通过 `REGISTRY` 覆盖，无需手动传 `--build-arg`
 - 同一 Pod 内容器共享网络，app 通过 `localhost:5432` 连接 PG
 - macOS 上 Podman 运行在 VM 中，`podman play kube` 会自动处理端口映射
 
@@ -40,13 +41,22 @@
 
 ### 1. 构建镜像
 
+使用本机原生架构构建，不导出 tar（`pod.yaml` 直接使用本地镜像）：
+
 ```bash
-podman build --build-arg REGISTRY=docker.m.daocloud.io/library -t tybooks:latest .
+PLATFORM=native EXPORT=0 npm run podman:build
+```
+
+构建完成后确认镜像存在：
+
+```bash
+podman images | grep tybooks
+# 期望看到 docker.io/library/tybooks:latest
 ```
 
 ### 2. 修改配置
 
-编辑 `pod.yaml`，将 `CHANGE_ME` 替换为实际密码（共 3 处：POSTGRES_PASSWORD、DATABASE_URL、DATABASE_URL_READONLY）
+编辑 `pod.yaml`，将 `CHANGE_ME` 替换为实际值（共 4 处：POSTGRES_PASSWORD、DATABASE_URL、DATABASE_URL_READONLY、JWT_SECRET）
 
 ### 3. 启动
 

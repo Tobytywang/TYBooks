@@ -39,7 +39,7 @@ spec:
           memory: 256Mi
 
     - name: app
-      image: tybooks:latest
+      image: docker.io/library/tybooks:latest
       env:
         - name: DATABASE_URL
           value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
