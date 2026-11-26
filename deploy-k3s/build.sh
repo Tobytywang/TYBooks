@@ -4,6 +4,7 @@
 # 可覆盖的环境变量：
 #   VERSION    镜像版本号，默认取 package.json 的 version
 #   PLATFORM   构建平台，默认 linux/amd64；设为 native 则使用本机架构
+#   NPM_REGISTRY  npm 源，默认 https://registry.npmmirror.com
 #   APP_IMAGE  应用镜像名（不含 tag），默认 docker.io/library/tybooks
 #   EXPORT     1=导出 tybooks.tar/postgres.tar（K3s 用），0=只构建（本地 Podman 用），默认 1
 #
@@ -21,6 +22,7 @@ APP_IMAGE="${APP_IMAGE:-docker.io/library/tybooks}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 EXPORT="${EXPORT:-1}"
 VERSION="${VERSION:-}"
+NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmmirror.com}"
 
 PLATFORM_FLAG=""
 if [ "${PLATFORM}" != "native" ]; then
@@ -60,6 +62,7 @@ podman build \
   ${PLATFORM_FLAG} \
   --build-arg REGISTRY="${REGISTRY}" \
   --build-arg APP_VERSION="${VERSION}" \
+  --build-arg NPM_REGISTRY="${NPM_REGISTRY}" \
   -t "${IMAGE_VERSIONED}" \
   -t "${IMAGE_LATEST}" .
 
