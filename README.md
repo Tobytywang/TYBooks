@@ -56,7 +56,7 @@ npm run dev:all
 | Docker Compose | `deploy-docker/` | 单机或 PostgreSQL 主从复制多节点 |
 | Podman Pod | `deploy-podman/` | 单机本地运行 |
 | K3s | `deploy-k3s/` | Kubernetes 生产部署（NodePort + 现有 Nginx） |
-| Jenkins | `deploy-jenkins/` | CI/CD 基础设施，与业务 namespace 隔离 |
+| Jenkins | `deploy-jenkins/` | CI/CD 基础设施，NodePort + Nginx，与业务隔离 |
 
 每个目录下的 `DEPLOY.md` 是对应的操作手册。
 
