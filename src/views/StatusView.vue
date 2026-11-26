@@ -165,6 +165,7 @@ onUnmounted(() => {
         </div>
         <div class="card-body">
           <div class="card-row"><span class="card-label">状态</span><span class="card-value" :class="status?.backend?.status === 'ok' ? 'ok-text' : 'err-text'">{{ status?.backend?.status === 'ok' ? '运行中' : '异常' }}</span></div>
+          <div class="card-row"><span class="card-label">应用版本</span><span class="card-value mono">{{ status?.backend?.version || '-' }}</span></div>
           <div class="card-row"><span class="card-label">运行时间</span><span class="card-value">{{ status?.backend?.uptime ? formatUptime(status.backend.uptime) : '-' }}</span></div>
           <div class="card-row"><span class="card-label">Node 版本</span><span class="card-value mono">{{ status?.backend?.nodeVersion || '-' }}</span></div>
           <div class="card-row"><span class="card-label">端口</span><span class="card-value mono">{{ status?.backend?.port || '-' }}</span></div>

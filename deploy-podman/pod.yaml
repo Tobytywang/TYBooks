@@ -39,7 +39,8 @@ spec:
           memory: 256Mi
 
     - name: app
-      image: docker.io/library/tybooks:latest
+      # 版本号与 package.json 保持一致
+      image: docker.io/library/tybooks:1.1.0
       env:
         - name: DATABASE_URL
           value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks

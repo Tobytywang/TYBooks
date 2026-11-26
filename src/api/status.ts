@@ -24,6 +24,7 @@ export interface SystemStatus {
 
 export interface BackendStatus {
   status: string
+  version: string
   uptime: number
   nodeVersion: string
   port: number | string
@@ -37,12 +38,6 @@ export interface DatabaseStatus {
   poolIdle?: number
   poolWaiting?: number
   error?: string
-}
-
-export interface SystemStatus {
-  backend: BackendStatus
-  database: DatabaseStatus
-  queryLog: QueryLogItem[]
 }
 
 export async function fetchStatus(): Promise<SystemStatus> {

@@ -18,7 +18,8 @@ services:
       retries: 5
 
   app:
-    image: docker.io/library/tybooks:latest
+    # 版本号与 package.json 保持一致
+    image: docker.io/library/tybooks:1.1.0
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://tybooks:${POSTGRES_PASSWORD}@${PRIMARY_IP}:5432/tybooks

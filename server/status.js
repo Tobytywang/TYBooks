@@ -3,12 +3,19 @@ import { poolRead } from './db.js'
 import { authMiddleware } from './middleware/auth.js'
 import { getQueryLog } from './middleware/queryLog.js'
 import { getServerLog } from './middleware/serverLog.js'
+import { VERSION } from './version.js'
 
 const router = Router()
+
+// 公开接口，便于部署后快速核对版本
+router.get('/version', (_req, res) => {
+  res.json({ name: 'tybooks', version: VERSION })
+})
 
 router.get('/status', authMiddleware, async (_req, res) => {
   const backend = {
     status: 'ok',
+    version: VERSION,
     uptime: Math.round(process.uptime()),
     nodeVersion: process.version,
     port: process.env.PORT || 8080,
