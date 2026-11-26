@@ -3,6 +3,7 @@ dist
 data/
 *.log
 .DS_Store
+.vscode/
 .env
 *.tar.gz
 *.tar
