@@ -155,7 +155,17 @@ kubectl get pods -A
 
 预期 `node` 为 `Ready`，`kube-system` 下的 `coredns`、`local-path-provisioner`、`metrics-server` 正常运行。
 
-如果系统 Pod 卡在 `ImagePullBackOff`，说明镜像源受限，需要改用 air-gap 安装，步骤见 `DEPLOY.md` 第 3 节。
+如果系统 Pod 卡在 `ImagePullBackOff`，说明镜像源受限，改用 air-gap 安装。先在能访问 Rancher 镜像的机器下载与目标版本一致的 `k3s` 二进制和 `k3s-airgap-images-amd64.tar.zst`，再执行：
+
+```bash
+sudo mkdir -p /var/lib/rancher/k3s/agent/images/
+sudo cp k3s-airgap-images-amd64.tar.zst /var/lib/rancher/k3s/agent/images/
+chmod +x k3s && sudo mv k3s /usr/local/bin/k3s
+
+curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh \
+  | INSTALL_K3S_MIRROR=cn INSTALL_K3S_SKIP_DOWNLOAD=true \
+    INSTALL_K3S_EXEC="--disable traefik --disable servicelb" sh -
+```
 
 查看 K3s 日志：
 
@@ -331,7 +341,7 @@ openssl s_client -connect <YOUR_DOMAIN>:443 -servername <YOUR_DOMAIN> </dev/null
 | 现象 | 原因与处理 |
 | --- | --- |
 | `kubectl` 报权限错误 | 没复制 kubeconfig 或没有 chown，重做第 4 节 |
-| 系统 Pod `ImagePullBackOff` | 镜像源受限，改用 `DEPLOY.md` 的 air-gap 安装 |
+| 系统 Pod `ImagePullBackOff` | 镜像源受限，改用本节 air-gap 安装 |
 | Nginx 启动失败 | `nginx -t` 看具体行；常见是证书路径不存在或 80 端口被占用 |
 | 证书申请失败 | 检查域名解析、80 端口、安全组，以及 `/var/www/letsencrypt` 权限 |
 | `curl https` 返回 502 | 应用未部署或 Pod 未就绪，属预期 |

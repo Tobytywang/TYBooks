@@ -47,7 +47,7 @@ podman machine start
 npm run podman:build
 ```
 
-`npm run podman:build` 实际调用 `deploy-k3s/build.sh`，它会：
+`npm run podman:build` 实际调用 `scripts/build-image.sh`（ENGINE=podman），它会：
 
 1. 检查 Podman 是否就绪
 2. 检查并按需拉取 `docker.m.daocloud.io/library/postgres:16-alpine`
@@ -79,42 +79,19 @@ scp tybooks.tar postgres.tar <user>@<server>:/tmp/
 
 ## 3. 服务器安装 K3s
 
-使用 Rancher 国内镜像安装，并停用 Traefik：
+本方案要求 K3s 停用 Traefik。如果服务器尚未安装 K3s，请先按 `SERVER-SETUP.md` 第 4 节完成安装。
 
-```bash
-curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh \
-  | INSTALL_K3S_MIRROR=cn INSTALL_K3S_EXEC="--disable traefik" sh -
-```
+如果已经安装但没有停用 Traefik，添加配置并重启：
 
-配置 kubectl：
-
-```bash
-mkdir -p ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown $USER ~/.kube/config
-kubectl get nodes
-```
-
-如果 K3s 已经安装过但没有停用 Traefik，新增配置后重启：
-
-```bash
-sudo tee /etc/rancher/k3s/config.yaml >/dev/null <<'EOF'
+```yaml
+# /etc/rancher/k3s/config.yaml
 disable:
   - traefik
-EOF
-sudo systemctl restart k3s
+  - servicelb
 ```
 
-**镜像源受限时的兜底方案（air-gap）**：如果 `kubectl get pods -A` 看到系统 Pod 卡在 `ImagePullBackOff`，改用离线安装。先在能访问 Rancher 镜像的机器下载与目标版本一致的 `k3s` 二进制和 `k3s-airgap-images-amd64.tar.zst`，再执行：
-
 ```bash
-sudo mkdir -p /var/lib/rancher/k3s/agent/images/
-sudo cp k3s-airgap-images-amd64.tar.zst /var/lib/rancher/k3s/agent/images/
-chmod +x k3s && sudo mv k3s /usr/local/bin/k3s
-
-curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh \
-  | INSTALL_K3S_MIRROR=cn INSTALL_K3S_SKIP_DOWNLOAD=true \
-    INSTALL_K3S_EXEC="--disable traefik" sh -
+sudo systemctl restart k3s
 ```
 
 ## 4. 导入镜像并核对名称
@@ -288,7 +265,7 @@ gunzip -c /var/backups/tybooks/tybooks-2026-01-01.sql.gz \
 | Pod 一直 `Pending` | PVC 未绑定或磁盘不足 | `kubectl describe pvc -n tybooks` |
 | App 反复 `CrashLoopBackOff` | Secret 缺失或连不上数据库 | `kubectl logs deploy/tybooks-app -n tybooks` |
 | Nginx 返回 502 | NodePort 后端未就绪 | 检查 Pod Ready，`curl 127.0.0.1:30080/api/auth/check` |
-| K3s 系统 Pod 拉镜像失败 | 镜像源受限 | 改用第 3 节的 air-gap 安装 |
+| K3s 系统 Pod 拉镜像失败 | 镜像源受限 | 按 `SERVER-SETUP.md` 第 4 节的 air-gap 步骤安装 |
 | 80/443 启动冲突 | Traefik 未停用 | 按第 3 节禁用 Traefik 并重启 K3s |
 
 ## 文件清单
