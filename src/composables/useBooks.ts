@@ -1,4 +1,4 @@
-import { ref, watch, computed } from 'vue'
+import { ref, computed } from 'vue'
 import type { Book, Stats, StatusFilter, SortKey } from '../types/book'
 import { fetchBooks, fetchStats } from '../api/books'
 

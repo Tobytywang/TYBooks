@@ -7,7 +7,6 @@ import authRouter from './auth.js'
 import genresRouter from './genres.js'
 import statusRouter from './status.js'
 import { initDB } from './db.js'
-import { wrapPool } from './middleware/queryLog.js'
 import './middleware/serverLog.js'
 
 const __filename = fileURLToPath(import.meta.url)

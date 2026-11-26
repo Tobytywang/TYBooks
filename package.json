@@ -10,10 +10,8 @@
     "version:bump": "node scripts/bump-version.mjs",
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
-    "docker:build": "bash deploy-docker/build.sh",
-    "docker:run": "docker stop tybooks-app 2>/dev/null; docker rm tybooks-app 2>/dev/null; docker run -d --name tybooks-app -p 8080:8080 tybooks:latest; true",
-    "podman:build": "bash deploy-k3s/build.sh",
-    "podman:run": "podman stop tybooks-app 2>/dev/null; podman rm tybooks-app 2>/dev/null; podman run -d --name tybooks-app -p 8080:8080 docker.io/library/tybooks:latest; true"
+    "docker:build": "ENGINE=docker bash scripts/build-image.sh",
+    "podman:build": "ENGINE=podman bash scripts/build-image.sh"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -25,7 +23,6 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.20.0",

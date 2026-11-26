@@ -64,8 +64,8 @@ npm run dev:all
 
 | 命令 | 说明 |
 | --- | --- |
-| `npm run podman:build` | 调用 `deploy-k3s/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
-| `npm run docker:build` | 调用 `deploy-docker/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
+| `npm run podman:build` | 调用 `scripts/build-image.sh`（ENGINE=podman），默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`NPM_REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
+| `npm run docker:build` | 调用 `scripts/build-image.sh`（ENGINE=docker），默认 `linux/amd64` + 导出 tar；可用同上 |
 
 ## 版本号
 

@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { fetchStatus } from '../api/status'
-import type { SystemStatus, QueryLogItem, ServerLogItem } from '../api/status'
+import type { SystemStatus } from '../api/status'
 
 const router = useRouter()
 const { logout, verify } = useAuth()

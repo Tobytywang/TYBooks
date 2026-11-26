@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
-import { fetchBooksPaged, fetchBooks, deleteBook } from '../api/books'
+import { fetchBooksPaged, deleteBook } from '../api/books'
 import { fetchGenres } from '../api/genres'
 import type { Book, StatusFilter, PaginatedBooks } from '../types/book'
 

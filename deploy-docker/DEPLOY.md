@@ -72,7 +72,7 @@ Compose 使用本地镜像 `docker.io/library/tybooks:<version>`，首次部署�
 npm run docker:build
 ```
 
-`npm run docker:build` 实际调用 `deploy-docker/build.sh`，默认构建 `linux/amd64` 并导出两个 tar。如果直接在本机构建（架构与运行节点一致），可用 `PLATFORM=native npm run docker:build`；镜像源受限时可用 `REGISTRY=docker.m.daocloud.io/library npm run docker:build`。
+`npm run docker:build` 实际调用 `scripts/build-image.sh`（ENGINE=docker），默认构建 `linux/amd64` 并导出两个 tar。如果直接在本机构建（架构与运行节点一致），可用 `PLATFORM=native npm run docker:build`；镜像源受限时可用 `REGISTRY=docker.m.daocloud.io/library npm run docker:build`。
 
 镜像版本来自 `package.json` 的 `version`，构建脚本会打出「版本号」和 `latest` 两个标签，导出的 tar 使用版本标签。升级版本执行 `npm run version:bump -- x.y.z`，它会同步更新 `package.json` 和四个部署清单。
 

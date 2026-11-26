@@ -2,11 +2,10 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import type { Book } from '../types/book'
 
-const props = defineProps<{ book: Book }>()
+defineProps<{ book: Book }>()
 const emit = defineEmits<{ click: [] }>()
 
 const titleRef = ref<HTMLElement | null>(null)
-const spineRef = ref<HTMLElement | null>(null)
 const showAuthor = ref(true)
 
 function getThreshold() {
