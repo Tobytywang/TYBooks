@@ -53,8 +53,16 @@
 
 | 命令 | 说明 |
 | --- | --- |
-| `npm run podman:build` | 调用 `deploy-k3s/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE` 覆盖 |
-| `npm run docker:build` | 调用 `deploy-docker/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE` 覆盖 |
+| `npm run podman:build` | 调用 `deploy-k3s/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
+| `npm run docker:build` | 调用 `deploy-docker/build.sh`，默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
+
+## 版本号
+
+- 唯一来源：`package.json` 的 `version`
+- 镜像标签：`<version>` 与 `latest`，导出的 tar 使用版本标签
+- 部署清单：K3s、Podman、Docker Compose 中的 image 固定为版本标签
+- 升级：`npm run version:bump -- x.y.z`，同步更新 `package.json` 与四个部署清单
+- 运行时可见：状态页、`GET /api/version`、镜像的 `APP_VERSION` 环境变量与 `org.opencontainers.image.version` 标签
 
 ## 迁移历史
 

@@ -66,13 +66,15 @@ cp .env.example .env
 
 ### 2. 构建应用镜像
 
-Compose 使用本地镜像 `docker.io/library/tybooks:latest`，首次部署前需要构建。在需要运行 App 的节点上执行（需要 Node.js 20+）：
+Compose 使用本地镜像 `docker.io/library/tybooks:<version>`，首次部署前需要构建。在需要运行 App 的节点上执行（需要 Node.js 20+）：
 
 ```bash
 npm run docker:build
 ```
 
 `npm run docker:build` 实际调用 `deploy-docker/build.sh`，默认构建 `linux/amd64` 并导出两个 tar。如果直接在本机构建（架构与运行节点一致），可用 `PLATFORM=native npm run docker:build`；镜像源受限时可用 `REGISTRY=docker.m.daocloud.io/library npm run docker:build`。
+
+镜像版本来自 `package.json` 的 `version`，构建脚本会打出「版本号」和 `latest` 两个标签，导出的 tar 使用版本标签。升级版本执行 `npm run version:bump -- x.y.z`，它会同步更新 `package.json` 和四个部署清单。
 
 如果节点上没有 Node.js，可以在本地构建后分发：
 
@@ -110,3 +112,21 @@ docker compose --env-file ../.env up -d app   # 启动应用
 1. 更新 Primary 的 `.env` 中 STANDBY_IPS（追加新 IP）
 2. 在 Primary 上重新执行 `bash init.sh`（幂等，重复安全）
 3. 在新 Standby 上重复步骤 4
+
+### 6. 更新应用
+
+```bash
+npm run version:bump -- 1.1.1   # 同步 package.json 与部署清单
+npm run docker:build
+scp tybooks.tar <user>@<node>:/tmp/
+```
+
+在目标节点加载新镜像并重建容器：
+
+```bash
+docker load -i /tmp/tybooks.tar
+cd primary
+docker compose --env-file ../.env up -d
+```
+
+`docker compose up -d` 会检测到镜像版本变化并重建 App 容器；Postgres 容器不受影响。

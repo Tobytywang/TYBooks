@@ -50,11 +50,13 @@ npm run podman:build
 1. 检查 Podman 是否就绪
 2. 检查并按需拉取 `docker.m.daocloud.io/library/postgres:16-alpine`
 3. 执行前端构建 `npm run build`
-4. 以 `linux/amd64` 构建应用镜像 `docker.io/library/tybooks:latest`
+4. 按 `package.json` 的 `version` 构建应用镜像，同时打上版本号和 `:latest` 两个标签
 5. 将 PG 镜像打上 `docker.io/library/postgres:16-alpine` 标签
-6. 导出 `tybooks.tar` 与 `postgres.tar`
+6. 导出 `tybooks.tar` 与 `postgres.tar`（tar 中使用版本标签）
 
-构建完成后确认两个镜像名：
+镜像版本以 `package.json` 的 `version` 为唯一来源。升级版本执行 `npm run version:bump -- x.y.z`，它会同步更新 `package.json` 和四个部署清单里的镜像标签。
+
+构建完成后确认镜像和标签：
 
 ```bash
 podman images | grep -E 'tybooks|postgres'
@@ -63,7 +65,7 @@ podman images | grep -E 'tybooks|postgres'
 期望看到：
 
 ```
-docker.io/library/tybooks        latest
+docker.io/library/tybooks        <version>
 docker.io/library/postgres       16-alpine
 ```
 
@@ -124,7 +126,7 @@ sudo k3s ctr images ls | grep -E 'tybooks|postgres'
 必须能看到这两个名字：
 
 ```
-docker.io/library/tybooks:latest
+docker.io/library/tybooks:<version>
 docker.io/library/postgres:16-alpine
 ```
 
@@ -198,6 +200,8 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ```bash
 curl -I https://YOUR_DOMAIN
+curl https://YOUR_DOMAIN/api/version
+# 期望返回 {"name":"tybooks","version":"<version>"}
 ```
 
 如果 Nginx 运行在容器里，`127.0.0.1:30080` 指向的是容器自身，需要改成宿主机 IP，或让该容器使用 host 网络。
@@ -227,22 +231,28 @@ kubectl exec -n tybooks postgres-0 -- psql -U tybooks -d tybooks -c "TRUNCATE bo
 
 ## 9. 更新应用
 
-本地重新构建并传输：
+1. 升级版本号（同时更新 `package.json` 和四个部署清单）：
+
+```bash
+npm run version:bump -- 1.1.1
+```
+
+2. 本地重新构建并传输：
 
 ```bash
 npm run podman:build
 scp tybooks.tar <user>@<server>:/tmp/
 ```
 
-服务器导入并重建 Pod：
+3. 服务器导入并更新 Deployment：
 
 ```bash
 sudo k3s ctr images import /tmp/tybooks.tar
-kubectl rollout restart deployment/tybooks-app -n tybooks
+kubectl apply -f app/
 kubectl rollout status deployment/tybooks-app -n tybooks --timeout=120s
 ```
 
-当前使用 `latest` 标签 + `imagePullPolicy: Never`，导入会覆盖同名标签。若发现 Pod 仍在使用旧镜像，改为版本号标签：修改 `build.sh` 中的 `APP_IMAGE` 和 `app/app.yaml` 中的 `image`，再用 `kubectl set image` 更新。
+`app/app.yaml` 中的 image 已固定为版本标签，导入后 `kubectl apply` 会自动触发滚动更新。回滚时把 image 改回旧版本、重新 `apply` 即可，旧版本镜像仍保留在 containerd 中。
 
 ## 10. 备份与恢复
 

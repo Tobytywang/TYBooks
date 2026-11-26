@@ -51,7 +51,14 @@ PLATFORM=native EXPORT=0 npm run podman:build
 
 ```bash
 podman images | grep tybooks
-# 期望看到 docker.io/library/tybooks:latest
+# 期望看到 docker.io/library/tybooks:<version> 和 docker.io/library/tybooks:latest
+```
+
+镜像版本来自 `package.json` 的 `version`，`pod.yaml` 中的 image 使用版本标签。升级版本执行 `npm run version:bump -- x.y.z`，它会同步更新 `package.json` 和四个部署清单；重新构建后需要重建 Pod：
+
+```bash
+podman pod rm -f tybooks
+podman play kube pod.yaml
 ```
 
 ### 2. 修改配置
