@@ -1,6 +1,17 @@
-# TYBooks 架构说明
+# TYBooks
 
-> 本文描述当前架构、数据初始化与部署方案。具体操作步骤见各部署目录下的 `DEPLOY.md`。
+书库管理系统：Vue 3 + Express + PostgreSQL，支持书籍浏览、评分、书评和分类管理。
+
+> 本文是项目总览。部署步骤见各部署目录下的 `DEPLOY.md`；全新服务器（K3s + Nginx）的初始化见 `deploy-k3s/SERVER-SETUP.md`。
+
+## 本地开发
+
+```bash
+npm install
+npm run dev:all
+```
+
+需要本地 PostgreSQL，连接串通过根目录 `.env` 的 `DATABASE_URL` 配置。
 
 ## 技术栈
 
@@ -63,9 +74,3 @@
 - 部署清单：K3s、Podman、Docker Compose 中的 image 固定为版本标签
 - 升级：`npm run version:bump -- x.y.z`，同步更新 `package.json` 与四个部署清单
 - 运行时可见：状态页、`GET /api/version`、镜像的 `APP_VERSION` 环境变量与 `org.opencontainers.image.version` 标签
-
-## 迁移历史
-
-- 数据存储已由 SQLite 迁移到 PostgreSQL 16，后端使用 `pg.Pool` 并支持读写分离
-- 原 `deploy/` 目录已重命名为 `deploy-docker/`
-- K3s 部署方案已由 Traefik + cert-manager 调整为 NodePort + 现有 Nginx
