@@ -12,7 +12,7 @@ spec:
         - name: POSTGRES_USER
           value: tybooks
         - name: POSTGRES_PASSWORD
-          value: CHANGE_ME
+          value: "<YOUR_POSTGRES_PASSWORD>"
       volumeMounts:
         - name: pg-data
           mountPath: /var/lib/postgresql/data
@@ -43,11 +43,11 @@ spec:
       image: docker.io/library/tybooks:1.1.0
       env:
         - name: DATABASE_URL
-          value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
+          value: "postgresql://tybooks:<YOUR_POSTGRES_PASSWORD>@localhost:5432/tybooks"
         - name: DATABASE_URL_READONLY
-          value: postgresql://tybooks:CHANGE_ME@localhost:5432/tybooks
+          value: "postgresql://tybooks:<YOUR_POSTGRES_PASSWORD>@localhost:5432/tybooks"
         - name: JWT_SECRET
-          value: CHANGE_ME
+          value: "<YOUR_JWT_SECRET>"
       ports:
         - containerPort: 8080
           hostPort: 8080
