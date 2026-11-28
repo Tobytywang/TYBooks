@@ -9,7 +9,7 @@
 #   ENGINE       podman 或 docker（必填）
 #   VERSION      镜像版本号，默认取 package.json 的 version
 #   PLATFORM     构建平台，默认 linux/amd64；设为 native 则使用本机架构
-#   REGISTRY     基础镜像源；podman 默认 daocloud，docker 默认 docker.io/library
+#   REGISTRY     基础镜像源，默认 docker.m.daocloud.io/library
 #   NPM_REGISTRY npm 源，默认 https://registry.npmmirror.com
 #   APP_IMAGE    应用镜像名（不含 tag），默认 docker.io/library/tybooks
 #   EXPORT       1=导出 tar，0=只构建
@@ -22,11 +22,9 @@ case "${ENGINE}" in
   *) echo "错误：ENGINE 必须是 podman 或 docker"; exit 1 ;;
 esac
 
-if [ "${ENGINE}" = "podman" ]; then
-  DEFAULT_REGISTRY="docker.m.daocloud.io/library"
-else
-  DEFAULT_REGISTRY="docker.io/library"
-fi
+# 默认统一走国内镜像源：两个引擎行为一致，
+# 需要官方源时显式传 REGISTRY=docker.io/library
+DEFAULT_REGISTRY="docker.m.daocloud.io/library"
 
 VERSION="${VERSION:-}"
 PLATFORM="${PLATFORM:-linux/amd64}"
@@ -43,7 +41,7 @@ if [ "${PLATFORM}" != "native" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${ROOT_DIR}"
 
 if [ -z "${VERSION}" ]; then
@@ -65,11 +63,23 @@ if ! "${ENGINE}" info >/dev/null 2>&1; then
 fi
 
 echo "=== 2/6 检查 PostgreSQL 镜像 ==="
-if "${ENGINE}" image inspect "${PG_SRC}" >/dev/null 2>&1; then
-  echo "已存在 ${PG_SRC}"
+# 只判断"是否存在"是不够的：在 Apple Silicon 上，本地早已有 arm64 版本，
+# 会跳过 --platform 拉取，最终导出 arm64 的 tar，在 x86_64 服务器上无法启动。
+if [ "${PLATFORM}" = "native" ]; then
+  WANT_ARCH="$("${ENGINE}" info --format '{{.Host.Arch}}')"
 else
+  WANT_ARCH="${PLATFORM#*/}"
+fi
+HAVE_ARCH="$("${ENGINE}" image inspect "${PG_SRC}" --format '{{.Architecture}}' 2>/dev/null || echo none)"
+
+if [ "${HAVE_ARCH}" = "none" ]; then
   echo "未找到 ${PG_SRC}，开始拉取..."
   "${ENGINE}" pull ${PLATFORM_FLAG} "${PG_SRC}"
+elif [ "${HAVE_ARCH}" != "${WANT_ARCH}" ]; then
+  echo "架构不匹配（本地 ${HAVE_ARCH}，需要 ${WANT_ARCH}），重新拉取 ${PG_SRC}"
+  "${ENGINE}" pull ${PLATFORM_FLAG} "${PG_SRC}"
+else
+  echo "已存在 ${PG_SRC} (${HAVE_ARCH})"
 fi
 
 echo "=== 3/6 构建前端 ==="
@@ -93,6 +103,10 @@ if [ "${EXPORT}" = "1" ]; then
   echo "=== 6/6 导出镜像 ==="
   "${ENGINE}" save "${IMAGE_VERSIONED}" -o tybooks.tar
   "${ENGINE}" save "${PG_DST}" -o postgres.tar
+
+  echo
+  echo "=== 校验导出产物 ==="
+  EXPECT_ARCH="${WANT_ARCH}" bash "${SCRIPT_DIR}/verify-tars.sh"
 
   echo
   echo "构建完成："
