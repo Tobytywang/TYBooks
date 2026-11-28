@@ -51,21 +51,54 @@ npm run dev:all
 
 ## 部署方案
 
-| 方案 | 目录 | 适用场景 |
-| --- | --- | --- |
-| Docker Compose | `deploy-docker/` | 单机或 PostgreSQL 主从复制多节点 |
-| Podman Pod | `deploy-podman/` | 单机本地运行 |
-| K3s | `deploy-k3s/` | Kubernetes 生产部署（NodePort + 现有 Nginx） |
-| Jenkins | `deploy-jenkins/` | CI/CD 基础设施，NodePort + Nginx，与业务隔离 |
+| 方案 | 目录 | 适用场景 | 状态 |
+| --- | --- | --- | --- |
+| Docker Compose | `deploy-docker/` | 单机或 PostgreSQL 主从复制多节点 | ✅ 当前生产在用（1C1G 实测可用） |
+| Podman Pod | `deploy-podman/` | 单机本地运行 | ✅ 本机开发/测试 |
+| K3s | `deploy-k3s/` | Kubernetes 生产部署（NodePort + 现有 Nginx） | ⚠️ 控制平面实测 578 MB，1C1G 不可行，需 2C4G 以上 |
 
-每个目录下的 `DEPLOY.md` 是对应的操作手册。
+每个目录下的 `DEPLOY.md` 是对应的操作手册。**前置条件、构建与交付、安全加固、备份与恢复、FAQ 是三种方式共用的，统一写在 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**；各 `DEPLOY.md` 只讲自己专属的部分。
 
 ## 构建入口
 
 | 命令 | 说明 |
 | --- | --- |
-| `npm run podman:build` | 调用 `scripts/build-image.sh`（ENGINE=podman），默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`NPM_REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
-| `npm run docker:build` | 调用 `scripts/build-image.sh`（ENGINE=docker），默认 `linux/amd64` + 导出 tar；可用同上 |
+| `npm run podman:build` | 调用 `scripts/image/build.sh`（ENGINE=podman），默认 `linux/amd64` + 导出 tar；可用 `PLATFORM`、`REGISTRY`、`NPM_REGISTRY`、`EXPORT`、`APP_IMAGE`、`VERSION` 覆盖 |
+| `npm run docker:build` | 调用 `scripts/image/build.sh`（ENGINE=docker），默认 `linux/amd64` + 导出 tar；可用同上 |
+| `npm run image:export` | 调用 `scripts/image/export.sh`，只导出 tar、不重建应用，用于"只补一个包"；可传 `app` / `pg` / `all`（默认），如 `npm run image:export -- pg` |
+| `npm run image:verify` | 调用 `scripts/image/verify-tars.sh`，校验 tar 的架构、tag、版本，**交付前必跑**；架构不符时退出码非 0 |
+
+> `image:export` 与 `podman:build`/`docker:build` 结束时都会自动调用 `image:verify`。
+> 为什么必须校验架构：在 Apple Silicon 上构建时，若本地已有同 tag 的 arm64 基础镜像，
+> 脚本会跳过 `--platform linux/amd64` 的拉取，导出 arm64 的 tar，导致在 x86_64 服务器上
+> 启动时报 `platform does not match`。`image:verify` 就是拦这个的。
+
+## 运维入口
+
+部署运维动作只写一份（`scripts/ops/`），目标差异放在各部署目录的 `deploy.env` 里。
+默认目标是 `deploy-docker`，换目标用 `-- <目录>`。
+
+| 命令 | 说明 |
+| --- | --- |
+| `npm run ops:doctor` | 部署前检查：运行时、配置占位符、端口、**镜像架构**、内存磁盘 |
+| `npm run ops:verify` | 部署后验收：容器状态、`/api/version`、`/api/books`、登录、资源占用 |
+| `npm run ops:password` | 改 admin 密码：`npm run ops:password -- '新密码'` |
+| `npm run ops:backup` | pg_dump 备份 + 按天轮转（`KEEP_DAYS` 默认 7，`BACKUP_DIR` 可覆盖） |
+
+```bash
+npm run ops:doctor
+npm run ops:verify
+npm run ops:password -- 'NewPass123'
+KEEP_DAYS=30 npm run ops:backup
+
+# 换成 podman 目标
+npm run ops:verify -- deploy-podman
+```
+
+> 加一种部署方式 = 新增一个 `<目录>/deploy.env`（`RUNTIME`、容器名、端口、占位符正则），
+> 不用复制任何脚本。
+
+
 
 ## 版本号
 

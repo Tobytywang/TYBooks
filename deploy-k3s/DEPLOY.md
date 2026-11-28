@@ -1,87 +1,55 @@
-# TYBooks K3s 部署指南
+# TYBooks K3s 部署
 
-> 适用环境：x86_64 服务器、可上网但镜像源受限、有公网域名并已运行 Nginx、全新部署（无需迁移旧数据）。
->
-> 如果服务器是全新初始化、尚未安装 K3s 和 Nginx，请先按 `SERVER-SETUP.md` 完成基础环境。
+> 前置条件、构建与交付、FAQ 见 [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md)。
+> 本文只讲 K3s 专属部分：拓扑、集群资源、部署验收、卸载清理。
+> 全新服务器的环境准备（内核参数、swap、安装 K3s/Nginx）见 [`SERVER-SETUP.md`](SERVER-SETUP.md)——那是**参考手册**，不是项目运行必需。
 
-## 0. 方案概览
+## 0. 资源要求（实测）
 
-- 本地 macOS 用 Podman 构建 `linux/amd64` 镜像，导出 tar 传到服务器
-- 服务器安装 K3s 并**停用自带 Traefik**
-- 应用通过 **NodePort 30080** 暴露，只监听本机
-- 由服务器上**已有的 Nginx** 终止 TLS，反代到 `127.0.0.1:30080`
-- PostgreSQL 使用 StatefulSet + local-path PVC，仅在集群内访问
-- 不使用 cert-manager，证书沿用 Nginx 现有配置
+| 项 | 数值 | 说明 |
+| --- | --- | --- |
+| K3s 控制平面 | **578 MB**（峰值 635 MB） | 单节点、含 containerd 与 shim，不含业务 |
+| K3s 常驻工作集 | 271 MB | `/var/lib/rancher/k3s/data`，不可裁剪 |
+| 站点负载 | 约 125 MB | App + PG |
 
-访问链路：
+**1 GB 内存跑不了 K3s**：页缓存装不下 271 MB 的工作集，会持续缺页抖动，表现为 apiserver 超时、addon 探针失败重启。**最低 2 GB，推荐 4 GB。**
+
+## 1. 方案与文件
 
 ```
-浏览器 → Nginx(443) → 127.0.0.1:30080 (K3s NodePort)
+浏览器 → Nginx(443) → 127.0.0.1:30080 (NodePort)
         → tybooks-app:8080 → postgres:5432
 ```
 
-## 1. 部署前检查（服务器）
+- K3s **停用自带 Traefik 与 servicelb**，入口交给宿主机已有的 Nginx
+- PostgreSQL 用 StatefulSet + `local-path` PVC，仅在集群内访问
+- 不使用 cert-manager，证书沿用 Nginx 现有配置
+
+| 文件 | 作用 |
+| --- | --- |
+| `namespace.yaml` | 创建 `tybooks` Namespace |
+| `app/app.yaml` | Deployment + NodePort Service(30080) |
+| `postgres/postgres.yaml` | ConfigMap + PVC + StatefulSet + Headless Service |
+| `nginx/tybooks.conf` | 宿主机 Nginx 的 TLS 反向代理模板 |
+| `.env.example` | 部署参数速查（密码、JWT、域名、端口），**不进入集群** |
+
+## 2. 服务器准备
 
 ```bash
-uname -m
-# 期望输出 x86_64
-
-ss -lntp | grep -E ':80|:443'
-# 期望看到 nginx 进程
-
-ss -lntp | grep 30080
-# 应无输出，确认 NodePort 未被占用
+uname -m                                     # 期望 x86_64
+ss -lntp | grep -E ':80|:443'                # 期望看到 nginx
+ss -lntp | grep 30080 || echo "NodePort 空闲"
 ```
 
-同时确认：
+确认：域名 A 记录已指向公网 IP；安全组放行 80/443（**30080 不需要对外**）；磁盘 ≥ 5 GB。
 
-- 域名 A 记录已指向服务器公网 IP
-- 安全组/防火墙放行 80、443（30080 不需要对外放行）
-- 磁盘剩余空间 ≥ 5GB（镜像 + PVC）
-- 如需在本地远程执行 kubectl，再放行 6443
-
-## 2. 本地构建镜像（Mac）
+### 2.1 停用 Traefik 与 servicelb
 
 ```bash
-podman machine start
-npm run podman:build
+sudo cat /etc/rancher/k3s/config.yaml 2>/dev/null || echo "尚无配置"
 ```
 
-`npm run podman:build` 实际调用 `scripts/build-image.sh`（ENGINE=podman），它会：
-
-1. 检查 Podman 是否就绪
-2. 检查并按需拉取 `docker.m.daocloud.io/library/postgres:16-alpine`
-3. 执行前端构建 `npm run build`
-4. 按 `package.json` 的 `version` 构建应用镜像，同时打上版本号和 `:latest` 两个标签
-5. 将 PG 镜像打上 `docker.io/library/postgres:16-alpine` 标签
-6. 导出 `tybooks.tar` 与 `postgres.tar`（tar 中使用版本标签）
-
-镜像版本以 `package.json` 的 `version` 为唯一来源。升级版本执行 `npm run version:bump -- x.y.z`，它会同步更新 `package.json` 和四个部署清单里的镜像标签。
-
-构建完成后确认镜像和标签：
-
-```bash
-podman images | grep -E 'tybooks|postgres'
-```
-
-期望看到：
-
-```
-docker.io/library/tybooks        <version>
-docker.io/library/postgres       16-alpine
-```
-
-传输到服务器：
-
-```bash
-scp tybooks.tar postgres.tar <user>@<server>:/tmp/
-```
-
-## 3. 服务器安装 K3s
-
-本方案要求 K3s 停用 Traefik。如果服务器尚未安装 K3s，请先按 `SERVER-SETUP.md` 第 4 节完成安装。
-
-如果已经安装但没有停用 Traefik，添加配置并重启：
+需要时追加并重启：
 
 ```yaml
 # /etc/rancher/k3s/config.yaml
@@ -94,12 +62,12 @@ disable:
 sudo systemctl restart k3s
 ```
 
-## 4. 导入镜像并核对名称
+### 2.2 导入镜像
 
 ```bash
+sudo k3s ctr images ls | grep -E 'tybooks|postgres' || echo "尚未导入"
 sudo k3s ctr images import /tmp/tybooks.tar
 sudo k3s ctr images import /tmp/postgres.tar
-sudo k3s ctr images ls | grep -E 'tybooks|postgres'
 ```
 
 必须能看到这两个名字：
@@ -109,13 +77,18 @@ docker.io/library/tybooks:<version>
 docker.io/library/postgres:16-alpine
 ```
 
-如果名字不一致（例如出现 `localhost/tybooks:latest`），用下面的命令补充标签，否则 Pod 会报 `ErrImageNeverPull`：
+名字不一致时补标签，否则 Pod 报 `ErrImageNeverPull`：
 
 ```bash
 sudo k3s ctr images tag <现有镜像名> <需要的镜像名>
 ```
 
-## 5. 创建 Namespace 和 Secret
+### 2.3 创建 Namespace 与 Secret
+
+```bash
+kubectl get ns tybooks 2>/dev/null || echo "Namespace 尚未创建"
+kubectl get secret -n tybooks postgres-secret app-secret 2>/dev/null || echo "Secret 尚未创建"
+```
 
 ```bash
 cd <项目目录>/deploy-k3s
@@ -124,27 +97,19 @@ kubectl apply -f namespace.yaml
 JWT_SECRET=$(openssl rand -base64 32)
 
 kubectl create secret generic postgres-secret -n tybooks \
-  --from-literal=POSTGRES_PASSWORD='YOUR_DB_PASSWORD'
+  --from-literal=POSTGRES_PASSWORD='<YOUR_POSTGRES_PASSWORD>'
 
 kubectl create secret generic app-secret -n tybooks \
-  --from-literal=DATABASE_URL='postgresql://tybooks:YOUR_DB_PASSWORD@postgres:5432/tybooks' \
-  --from-literal=DATABASE_URL_READONLY='postgresql://tybooks:YOUR_DB_PASSWORD@postgres:5432/tybooks' \
+  --from-literal=DATABASE_URL='postgresql://tybooks:<YOUR_POSTGRES_PASSWORD>@postgres:5432/tybooks' \
+  --from-literal=DATABASE_URL_READONLY='postgresql://tybooks:<YOUR_POSTGRES_PASSWORD>@postgres:5432/tybooks' \
   --from-literal=JWT_SECRET="$JWT_SECRET"
 ```
 
-注意事项：
+- 数据库密码只用字母数字，避免 URL 转义问题
+- 不要省略 `JWT_SECRET`，否则回退到代码内默认密钥
+- Secret 已存在要改值时，用 `--dry-run=client -o yaml | kubectl apply -f -` 覆盖
 
-- 数据库密码只用字母和数字，避免出现在 URL 里时需要转义
-- 不要省略 `JWT_SECRET`，否则会退回代码中的默认密钥
-- Secret 已存在需要修改时，用下面的方式覆盖：
-
-```bash
-kubectl create secret generic app-secret -n tybooks \
-  --from-literal=... \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-## 6. 部署 PostgreSQL 和 App
+## 3. 部署与验收
 
 ```bash
 kubectl apply -f postgres/
@@ -152,129 +117,134 @@ kubectl wait --for=condition=ready pod -l app=postgres -n tybooks --timeout=180s
 
 kubectl apply -f app/
 kubectl rollout status deployment/tybooks-app -n tybooks --timeout=120s
-
 kubectl get pods,svc -n tybooks
 ```
+
+首次启动会建表、写入 11 个分类与约 50 本示例书，并创建 `admin / admin123`。
 
 本机验证：
 
 ```bash
-curl http://127.0.0.1:30080/api/auth/check
-# 期望返回 {"authenticated":false}
+curl http://127.0.0.1:30080/api/auth/check      # 期望 {"authenticated":false}
+curl http://127.0.0.1:30080/api/version         # 期望 {"name":"tybooks","version":"<version>"}
 ```
 
-首次启动时应用会自动建表，写入 11 个分类和约 50 本示例书，并创建默认账号 `admin / admin123`。
-
-## 7. 配置 Nginx 反向代理
-
-把 `nginx/tybooks.conf` 复制为 `/etc/nginx/conf.d/tybooks.conf`（部分发行版是 `/etc/nginx/sites-enabled/`），替换其中的域名和证书路径：
+### 3.1 配置 Nginx
 
 ```bash
-sudo cp nginx/tybooks.conf /etc/nginx/conf.d/tybooks.conf
-sudo vi /etc/nginx/conf.d/tybooks.conf
+sudo ls -l /etc/nginx/conf.d/tybooks.conf 2>/dev/null || echo "尚未配置"
+sudo cp nginx/tybooks.conf /etc/nginx/conf.d/tybooks.conf   # 已存在先备份再覆盖
+sudo vi /etc/nginx/conf.d/tybooks.conf                      # 替换域名与证书路径
 sudo nginx -t && sudo systemctl reload nginx
+curl -I https://<YOUR_DOMAIN>
 ```
 
-验证 HTTPS：
+> 若 Nginx 跑在容器里，`127.0.0.1:30080` 指向容器自身，需改成宿主机 IP 或让该容器使用 host 网络。
+
+### 3.2 改默认密码（K3s 目标暂未接入 `ops:password`）
 
 ```bash
-curl -I https://YOUR_DOMAIN
-curl https://YOUR_DOMAIN/api/version
-# 期望返回 {"name":"tybooks","version":"<version>"}
-```
+# 本地生成哈希
+node -e "console.log(require('bcryptjs').hashSync('<YOUR_NEW_PASSWORD>',12))"
 
-如果 Nginx 运行在容器里，`127.0.0.1:30080` 指向的是容器自身，需要改成宿主机 IP，或让该容器使用 host 网络。
+# 服务器上先确认账号存在
+kubectl exec -n tybooks postgres-0 -- psql -U tybooks -d tybooks -c "SELECT username FROM users;"
 
-## 8. 首次登录与修改默认密码
-
-浏览器打开 `https://YOUR_DOMAIN`，用 `admin / admin123` 登录后立即改密。
-
-先在本地 Mac 的项目根目录生成新密码的 bcrypt 哈希：
-
-```bash
-node -e "console.log(require('bcryptjs').hashSync('YOUR_NEW_PASSWORD',12))"
-```
-
-把输出的哈希字符串粘贴到下面的命令中，在服务器上执行：
-
-```bash
+# 再更新（把哈希粘进去）
 kubectl exec -n tybooks postgres-0 -- psql -U tybooks -d tybooks \
-  -c "UPDATE users SET password='粘贴上一步的哈希' WHERE username='admin';"
+  -c "UPDATE users SET password='<上一步的哈希>' WHERE username='admin';"
 ```
 
-如果不需要示例书籍，可以清空：
-
-```bash
-kubectl exec -n tybooks postgres-0 -- psql -U tybooks -d tybooks -c "TRUNCATE books;"
-```
-
-## 9. 更新应用
-
-1. 升级版本号（同时更新 `package.json` 和四个部署清单）：
-
-```bash
-npm run version:bump -- 1.1.1
-```
-
-2. 本地重新构建并传输：
-
-```bash
-npm run podman:build
-scp tybooks.tar <user>@<server>:/tmp/
-```
-
-3. 服务器导入并更新 Deployment：
-
-```bash
-sudo k3s ctr images import /tmp/tybooks.tar
-kubectl apply -f app/
-kubectl rollout status deployment/tybooks-app -n tybooks --timeout=120s
-```
-
-`app/app.yaml` 中的 image 已固定为版本标签，导入后 `kubectl apply` 会自动触发滚动更新。回滚时把 image 改回旧版本、重新 `apply` 即可，旧版本镜像仍保留在 containerd 中。
-
-## 10. 备份与恢复
-
-手动备份：
+### 3.3 备份（K3s 目标暂未接入 `ops:backup`）
 
 ```bash
 sudo mkdir -p /var/backups/tybooks
 kubectl exec -n tybooks postgres-0 -- pg_dump -U tybooks tybooks \
   | gzip > /var/backups/tybooks/tybooks-$(date +%F).sql.gz
+
+# 恢复
+gunzip -c /var/backups/tybooks/tybooks-2026-01-01.sql.gz \
+  | kubectl exec -i -n tybooks postgres-0 -- psql -U tybooks -d tybooks
 ```
 
-每天凌晨 3 点自动备份（写入 crontab，注意 `%` 需要转义）：
+定时任务（注意 `%` 在 crontab 中要转义）：
 
 ```cron
 0 3 * * * kubectl exec -n tybooks postgres-0 -- pg_dump -U tybooks tybooks | gzip > /var/backups/tybooks/tybooks-$(date +\%F).sql.gz
 ```
 
-恢复：
+> `scripts/ops/*` 依赖 `docker`/`podman exec`，**不适用于 K3s 目标**；K3s 的运维命令以上面的 `kubectl` 形式为准。
+
+## 4. 更新应用
 
 ```bash
-gunzip -c /var/backups/tybooks/tybooks-2026-01-01.sql.gz \
-  | kubectl exec -i -n tybooks postgres-0 -- psql -U tybooks -d tybooks
+npm run version:bump -- 1.1.1
+npm run podman:build
+npm run image:verify
+scp tybooks.tar <user>@<server>:/tmp/
+
+# 服务器
+sudo k3s ctr images import /tmp/tybooks.tar
+kubectl apply -f app/
+kubectl rollout status deployment/tybooks-app -n tybooks --timeout=120s
 ```
 
-## 11. 常见问题
+`app/app.yaml` 的 image 固定为版本标签，导入后 apply 即触发滚动更新。回滚把 image 改回旧版本重新 apply 即可，旧镜像仍在 containerd 中。
+
+## 5. 完全卸载与清理
+
+**这一步很重要**：`systemctl stop k3s` 只杀主进程，containerd 启动的容器沙箱（`containerd-shim-runc-v2`）会被 init 接管并继续运行，内存和端口都不会释放。
+
+### 5.1 停止并禁用服务
+
+```bash
+sudo systemctl disable --now k3s
+```
+
+### 5.2 清理残留容器（关键）
+
+```bash
+ls -l /usr/local/bin/k3s-*.sh
+
+sudo /usr/local/bin/k3s-killall.sh      # 只清理容器/沙箱，保留安装
+# 或彻底卸载（同时删除 /var/lib/rancher/k3s，回收约 500 MB 磁盘）
+sudo /usr/local/bin/k3s-uninstall.sh
+```
+
+### 5.3 确认清理干净
+
+```bash
+pgrep -af 'k3s|containerd|local-path' || echo "已清空"
+ss -lntp | grep -E ':6443|:10250|:8472' || echo "端口已释放"
+```
+
+### 5.4 顺带瘦身
+
+K3s 的事件与报错会把 journald 撑大：
+
+```bash
+sudo journalctl --vacuum-size=200M
+sudo systemctl restart systemd-journald
+```
+
+### 5.5 实测参考（1 核 1 GB，从 K3s 迁到 Compose）
+
+| 阶段 | used | available |
+| --- | --- | --- |
+| 停服务前（含残留 shim） | 895 MiB | 62 MiB |
+| `systemctl disable --now k3s` 之后 | 402 MiB | 555 MiB |
+| 清理 shim + journald 瘦身后 | 377 MiB | 579 MiB |
+
+释放的大头（约 493 MiB）发生在**停服务**那一步；清理 shim 和 journal 只回收约 65 MiB，但能让端口和内存彻底干净。
+
+## 6. K3s 专属 FAQ
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| Pod 状态 `ErrImageNeverPull` | 镜像未导入或名称不一致 | `sudo k3s ctr images ls` 核对，必要时 `ctr images tag` |
-| Pod 状态 `ImagePullBackOff` | 清单引用了不存在的镜像名 | 确认 PG 是 `docker.io/library/postgres:16-alpine` |
+| Pod `ErrImageNeverPull` | 镜像未导入或名称不一致 | `sudo k3s ctr images ls` 核对，必要时 `ctr images tag` |
+| Pod `ImagePullBackOff` | 清单引用了不存在的镜像名 | 确认 PG 是 `docker.io/library/postgres:16-alpine` |
 | Pod 一直 `Pending` | PVC 未绑定或磁盘不足 | `kubectl describe pvc -n tybooks` |
 | App 反复 `CrashLoopBackOff` | Secret 缺失或连不上数据库 | `kubectl logs deploy/tybooks-app -n tybooks` |
-| Nginx 返回 502 | NodePort 后端未就绪 | 检查 Pod Ready，`curl 127.0.0.1:30080/api/auth/check` |
-| K3s 系统 Pod 拉镜像失败 | 镜像源受限 | 按 `SERVER-SETUP.md` 第 4 节的 air-gap 步骤安装 |
-| 80/443 启动冲突 | Traefik 未停用 | 按第 3 节禁用 Traefik 并重启 K3s |
-
-## 文件清单
-
-| 文件 | 用途 |
-| --- | --- |
-| `build.sh` | 本地构建 linux/amd64 镜像并导出 tar |
-| `namespace.yaml` | 创建 `tybooks` Namespace |
-| `postgres/postgres.yaml` | ConfigMap + PVC + StatefulSet + Headless Service |
-| `app/app.yaml` | Deployment + NodePort Service |
-| `nginx/tybooks.conf` | Nginx TLS 反向代理模板 |
-| `.env.example` | 部署参数模板（密码、JWT、域名、端口） |
+| Nginx 502 | NodePort 后端未就绪 | 检查 Pod Ready，`curl 127.0.0.1:30080/api/auth/check` |
+| 80/443 启动冲突 | Traefik 未停用 | 按 2.1 禁用并重启 K3s |
+| `kubectl get pods -A` 超时 | 内存不足导致 apiserver 响应超时 | 见第 0 节；`dmesg`/`journalctl -u k3s` 查证 |

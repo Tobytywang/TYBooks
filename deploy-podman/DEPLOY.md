@@ -1,100 +1,110 @@
-# TYBooks Podman 部署指南
+# TYBooks Podman Pod 部署
 
-基于 Podman Pod，PG + App 运行在同一 Pod 内，共享网络命名空间。
+> 前置条件、构建与交付、安全加固、备份与恢复、FAQ 见 [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md)。
+> 本文只讲 Podman Pod 专属部分。
 
-## 一、安装/部署前需知
+适用于单机（尤其是开发机）快速起一套：PG 与 App 在同一个 Pod 内，共享网络命名空间，App 用 `localhost:5432` 连库。
 
-### 所需软件
+## 一、拓扑与文件
 
-| 软件        | 安装位置 | 说明           |
-| ----------- | -------- | -------------- |
-| Podman      | 本地     | 运行容器和 Pod |
-| Node.js 20+ | 本地     | 构建前端       |
+```
+Pod tybooks
+├── postgres   5432（仅 Pod 内可见，不映射到宿主）
+└── app        8080 → hostPort 8080
+```
 
-### 暴露端口
+| 文件 | 作用 |
+| --- | --- |
+| `pod.yaml` | K8s Pod 格式的清单：容器、环境变量、卷、探针 |
+| `deploy.env` | 给 `scripts/ops/` 的目标描述（运行时 `podman`、容器名 `tybooks-app`） |
 
-| 端口 | 服务        | 说明                            |
-| ---- | ----------- | ------------------------------- |
-| 8080 | tybooks-app | 应用 HTTP 端口（hostPort 映射） |
+**与 Compose 的机制差异**：`podman play kube` **不做变量插值**，所以配置只能内联在 `pod.yaml` 里，占位符是 `<YOUR_*>`（与其它部署方式统一）。
 
-> PG 的 5432 端口仅在 Pod 内部可见，app 通过 `localhost:5432` 访问，未暴露到宿主机。
+数据卷：hostPath `/var/lib/tybooks/pg-data` → `/var/lib/postgresql/data`。
 
-### 数据卷
+> `pod.yaml` 里的 `postgres` 镜像走 `docker.m.daocloud.io/library/postgres:16-alpine`（本机已有的 tag）；应用镜像走 `docker.io/library/tybooks:<version>`。
 
-| 卷名    | 宿主路径  | 容器路径                 | 说明                           |
-| ------- | --------- | ------------------------ | ------------------------------ |
-| pg-data | /var/lib/tybooks/pg-data | /var/lib/postgresql/data | PG 数据持久化（hostPath 类型） |
+## 二、准备
 
-### 配置文件
+### 1. 替换占位符
 
-| 文件         | 说明                                                                   |
-| ------------ | ---------------------------------------------------------------------- |
-| `pod.yaml` | Pod 定义（容器、环境变量、卷），需替换 CHANGE_ME 为实际值（共 4 处） |
+```bash
+cd deploy-podman
+grep -n 'YOUR_' pod.yaml        # 应看到 4 处
+```
 
-### 注意事项
+编辑 `pod.yaml`，把 `<YOUR_POSTGRES_PASSWORD>`（3 处）和 `<YOUR_JWT_SECRET>`（1 处）替换为实际值。再次执行上面的命令应无输出。
 
-- 构建统一走 `npm run podman:build`，脚本默认使用 daocloud 镜像源，可通过 `REGISTRY` 覆盖，无需手动传 `--build-arg`
-- 同一 Pod 内容器共享网络，app 通过 `localhost:5432` 连接 PG
-- macOS 上 Podman 运行在 VM 中，`podman play kube` 会自动处理端口映射
+数据卷用的是 hostPath，目录会被自动创建；本机测试时可改成别的路径避免污染。
 
-## 二、安装步骤
+### 2. 构建镜像（本机原生，不导出 tar）
 
-### 1. 构建镜像
-
-使用本机原生架构构建，不导出 tar（`pod.yaml` 直接使用本地镜像）：
+`pod.yaml` 直接用本地镜像，所以不必导出 tar：
 
 ```bash
 PLATFORM=native EXPORT=0 npm run podman:build
-```
-
-构建完成后确认镜像存在：
-
-```bash
 podman images | grep tybooks
-# 期望看到 docker.io/library/tybooks:<version> 和 docker.io/library/tybooks:latest
 ```
 
-镜像版本来自 `package.json` 的 `version`，`pod.yaml` 中的 image 使用版本标签。升级版本执行 `npm run version:bump -- x.y.z`，它会同步更新 `package.json` 和四个部署清单；重新构建后需要重建 Pod：
+## 三、部署与验收
+
+### 1. 启动
 
 ```bash
-podman pod rm -f tybooks
+podman pod ps | grep tybooks || echo "尚无 tybooks Pod"   # 已存在先按第四节清理
 podman play kube pod.yaml
 ```
 
-### 2. 修改配置
-
-编辑 `pod.yaml`，将 `CHANGE_ME` 替换为实际值（共 4 处：POSTGRES_PASSWORD、DATABASE_URL、DATABASE_URL_READONLY、JWT_SECRET）
-
-### 3. 启动
+### 2. 验收
 
 ```bash
-podman play kube pod.yaml
+npm run ops:verify -- deploy-podman
 ```
 
-### 4. 验证
+### 3. 更新
 
 ```bash
-podman pod ls
-podman logs tybooks-app
-curl http://localhost:8080/api/books
+npm run version:bump -- 1.1.1
+PLATFORM=native EXPORT=0 npm run podman:build
+podman pod rm -f tybooks && podman play kube pod.yaml    # Pod 需要重建才能用新镜像
 ```
 
-### 5. 停止
+## 四、停止与清理
 
 ```bash
+podman pod ps | grep tybooks || echo "没有 tybooks Pod"
 podman pod stop tybooks
 podman pod rm tybooks
 ```
 
-### 6. 从 Docker 迁移数据
+数据在宿主机的 `/var/lib/tybooks/pg-data`（rootful podman 下位于 Podman VM 内），需要一并清理时：
 
 ```bash
-# 查看 Docker 中运行的 postgres 容器名
-docker ps --filter ancestor=postgres:16-alpine --format '{{.Names}}'
+podman run --rm -v /var/lib:/host docker.io/library/postgres:16-alpine \
+  sh -c 'rm -rf /host/tybooks'
+```
 
-# 导出数据（将 <容器名> 替换为实际容器名）
+> **注意**：删除数据目录后再次启动会重新建表并创建 `admin / admin123`。
+
+## 五、从 Docker 迁移数据
+
+```bash
+# 确认源容器在运行（Exited 的先 docker start）
+docker ps -a --filter ancestor=postgres:16-alpine --format '{{.Names}}\t{{.Status}}'
+
 docker exec <容器名> pg_dump -U tybooks tybooks > backup.sql
-
-# 导入到 Podman
 podman exec -i tybooks-postgres psql -U tybooks -d tybooks < backup.sql
 ```
+
+## 附：资源测量
+
+`tools/measure-memory.sh` 会在本机起一套独立的 tybooks Pod（端口 18080、独立数据目录），测量稳定态内存与 VM 总占用，测完可保留或清理：
+
+```bash
+bash tools/measure-memory.sh            # 保留环境
+KEEP=0 bash tools/measure-memory.sh     # 测完自动清理
+```
+
+> 该脚本依赖 macOS 上的 `podman machine ssh`，**仅适用于 macOS**；Linux 上的 rootful Podman 没有 `podman machine` 子命令。
+
+实测参考（1 核 1 GB）：App 54–70 MB、PG 70 MB（含页缓存）、合计约 125 MB。
