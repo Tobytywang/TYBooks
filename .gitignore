@@ -8,3 +8,4 @@ data/
 *.tar.gz
 *.tar
 tsconfig.tsbuildinfo
+deploy-*/backup/
